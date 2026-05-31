@@ -967,6 +967,57 @@ function playSMSDemo() {
       </div>`);
     };
   }
+// ════════════════════════════════════════════════════
+// AUDIO FEEDBACK ENGINE (Web Audio API)
+// ════════════════════════════════════════════════════
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playSound(type) {
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  const now = audioCtx.currentTime;
+  if (type === 'ping') {
+    // Futuristic success ping
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, now); // A5
+    osc.frequency.exponentialRampToValueAtTime(1760, now + 0.1); // Up to A6
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.3, now + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+    osc.start(now);
+    osc.stop(now + 0.5);
+  } else if (type === 'pulse') {
+    // Deep UI tap/pulse
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(220, now);
+    osc.frequency.exponentialRampToValueAtTime(110, now + 0.2);
+    gain.gain.setValueAtTime(0.5, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+    osc.start(now);
+    osc.stop(now + 0.2);
+  }
+}
+
+// Intercept showToast to add a 'ping' sound
+const originalShowToast = window.showToast;
+window.showToast = function(msg, ms) {
+  if (originalShowToast) originalShowToast(msg, ms);
+  playSound('ping');
+};
+
+// Intercept simNext to add a 'pulse' sound
+const originalSimNext = window.simNext;
+if (originalSimNext) {
+  window.simNext = function() {
+    playSound('pulse');
+    originalSimNext();
+  };
+}
+
 })();
 
 // ════════════════════════════════════════════════════
@@ -1120,50 +1171,100 @@ let _camStream = null;
 
 window.startAICamera = async function() {
   const video = document.getElementById('ai-camera-video');
+  const canvas = document.getElementById('ai-camera-canvas');
   const overlay = document.getElementById('ai-camera-overlay');
   const btn = document.getElementById('start-cam-btn');
   
-  if (!video) return;
+  if (!video || !canvas) return;
 
   try {
     _camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
     video.srcObject = _camStream;
+    
+    // Wait for video metadata to set canvas size
+    video.onloadedmetadata = () => {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+    };
+    
     video.style.display = 'block';
-    overlay.style.display = 'block';
+    canvas.style.display = 'block';
+    overlay.style.display = 'none'; // hide the old pulse overlay
     if (btn) btn.style.display = 'none';
 
-    showToast('📷 Camera active. Loading TF.js AI Model...', 3000);
+    showToast('📷 Camera active. Loading TF.js Object Detection Model...', 3000);
     
-    // Ensure tf and mobilenet are loaded from HTML CDNs
-    if (typeof mobilenet === 'undefined') {
-      throw new Error("MobileNet model not loaded. Check internet connection.");
+    // Ensure cocoSsd is loaded from HTML CDNs
+    if (typeof cocoSsd === 'undefined') {
+      throw new Error("COCO-SSD model not loaded. Check internet connection.");
     }
 
-    const model = await mobilenet.load();
+    const model = await cocoSsd.load();
     showToast('🧠 AI Model loaded. Scanning scene for damage & casualties...', 3000);
     
-    // Let video play a bit then classify
-    setTimeout(async () => {
-      // Run TensorFlow prediction on the live video element
-      const predictions = await model.classify(video);
+    const ctx = canvas.getContext('2d');
+    let isScanning = true;
+    let finalDetections = [];
+    
+    // Real-time detection loop
+    async function detectFrame() {
+      if (!isScanning) return;
       
-      // Pause video to simulate snapshot
-      video.pause();
+      const predictions = await model.detect(video);
+      finalDetections = predictions; // Keep latest
       
-      // Analyze predictions
-      let detectedLabels = predictions.map(p => p.className.toLowerCase());
+      // Draw boxes
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      predictions.forEach(p => {
+        const [x, y, width, height] = p.bbox;
+        const text = `${p.class} (${Math.round(p.score * 100)}%)`;
+        
+        // Is it a critical object?
+        const criticalKeywords = ['car', 'truck', 'bus', 'motorcycle', 'bicycle', 'person'];
+        const isCritical = criticalKeywords.includes(p.class.toLowerCase());
+        
+        ctx.strokeStyle = isCritical ? '#ff4757' : '#00e896';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(x, y, width, height);
+        
+        // Draw label background
+        ctx.fillStyle = isCritical ? '#ff4757' : '#00e896';
+        ctx.fillRect(x, y - 25, ctx.measureText(text).width + 10, 25);
+        
+        // Draw label text
+        ctx.fillStyle = '#000000';
+        ctx.font = '16px monospace';
+        ctx.fontWeight = 'bold';
+        ctx.fillText(text, x + 5, y - 7);
+      });
+      
+      requestAnimationFrame(detectFrame);
+    }
+    
+    // Start drawing!
+    detectFrame();
+    
+    // Stop after 4.5 seconds and trigger the UI
+    setTimeout(() => {
+      isScanning = false;
+      video.pause(); // simulate snapshot
+      
+      let topLabel = "unknown object";
+      let prob = 0;
       let isCritical = false;
-      const criticalKeywords = ['car', 'sports car', 'minivan', 'jeep', 'cab', 'ambulance', 'fire engine', 'trailer', 'motor vehicle'];
       
-      for (const label of detectedLabels) {
-        for (const kw of criticalKeywords) {
-          if (label.includes(kw)) { isCritical = true; break; }
-        }
+      if (finalDetections.length > 0) {
+        // Find highest score
+        finalDetections.sort((a, b) => b.score - a.score);
+        topLabel = finalDetections[0].class;
+        prob = (finalDetections[0].score * 100).toFixed(1);
+        
+        const criticalKeywords = ['car', 'truck', 'bus', 'motorcycle', 'bicycle', 'person'];
+        isCritical = finalDetections.some(d => criticalKeywords.includes(d.class.toLowerCase()));
       }
       
-      const topLabel = predictions[0].className;
-      const prob = (predictions[0].probability * 100).toFixed(1);
-
+      overlay.style.display = 'block'; // Show the final summary overlay
       if (isCritical) {
         overlay.innerHTML = `<div style="position:absolute; inset:0; border:4px solid #ff4757; background:rgba(255,71,87,0.1);">
           <div style="position:absolute; bottom:12px; width:100%; text-align:center; color:#ff4757; font-family:monospace; font-weight:bold; font-size:14px; background:rgba(0,0,0,0.8); padding:6px 0;">[ CRITICAL: ${topLabel.toUpperCase()} DETECTED (${prob}%) ]</div>
@@ -1179,21 +1280,21 @@ window.startAICamera = async function() {
       // Trigger the existing result logic with the AI's actual findings
       const input = document.getElementById('severity-input');
       if (input) {
-        input.value = `AI Camera detected: ${topLabel} (${prob}% confidence). ${isCritical ? 'Severe damage likely.' : 'Minor incident.'}`;
+        input.value = `AI Object Detection: ${topLabel} (${prob}% confidence). ${isCritical ? 'Severe damage/collision likely.' : 'Minor incident.'}`;
       }
       
       if (typeof runSeverityScan === 'function') {
         runSeverityScan();
       }
       
-      // Stop camera track after scan is complete
+      // Stop camera track completely
       setTimeout(() => {
         if (_camStream) {
           _camStream.getTracks().forEach(t => t.stop());
         }
       }, 5000);
 
-    }, 3000); // 3 seconds to scan
+    }, 4500); // 4.5 seconds of live bounding boxes
 
   } catch (err) {
     console.error('Camera or AI Error', err);
