@@ -26,9 +26,9 @@ let heatmapCircles = [];
 let ambulanceInterval = null;
 let privAmbProgress = 0;
 
-const INCIDENT = { lat: 28.4595, lng: 77.0266, label: 'NH-48, km 28.4' };
-const PRIV_START = { lat: 28.4400, lng: 77.0100 };
-const GOVT_POS   = { lat: 28.4900, lng: 77.0800 };
+let INCIDENT = { lat: 28.4595, lng: 77.0266, label: 'NH-48, km 28.4' };
+let PRIV_START = { lat: 28.4400, lng: 77.0100 };
+let GOVT_POS   = { lat: 28.4900, lng: 77.0800 };
 const HOSPITALS = [
   { lat: 28.4673, lng: 77.0400, name: 'Medanta Hospital', cap: 68 },
   { lat: 28.4800, lng: 77.0100, name: 'Fortis Memorial', cap: 87 },
@@ -88,17 +88,23 @@ function initRealGeolocation() {
         accuracy: Math.round(pos.coords.accuracy),
         ts: new Date().toLocaleTimeString()
       };
-      // If Leaflet is ready, fly to real location
+      
+      // Calculate dynamic incident and ambulance spawns based on user location
+      INCIDENT = { lat: realGPS.lat, lng: realGPS.lng, label: 'Your Current Location' };
+      PRIV_START = { lat: realGPS.lat - 0.015, lng: realGPS.lng - 0.015 }; // ~2km away
+      GOVT_POS = { lat: realGPS.lat + 0.040, lng: realGPS.lng + 0.030 }; // ~5km away
+      
+      // Redraw the entire map to reflect dynamic coordinates
       if (leafletMap) {
-        leafletMap.flyTo([realGPS.lat, realGPS.lng], 14, { duration: 1.5 });
-        if (window._userLocMarker) {
-          window._userLocMarker.setLatLng([realGPS.lat, realGPS.lng]);
-          window._userLocMarker.setPopupContent(
-            `<b>📍 Your Location</b><br>${realGPS.lat.toFixed(5)}°N, ${realGPS.lng.toFixed(5)}°E<br><small>Accuracy ±${realGPS.accuracy}m</small>`
-          );
-        }
-        searchNearbyHospitals(realGPS.lat, realGPS.lng);
+        leafletMap.off();
+        leafletMap.remove();
+        leafletMap = null;
       }
+      initMap();
+      
+      // Fetch dynamic hospitals based on real GPS
+      searchNearbyHospitals(realGPS.lat, realGPS.lng);
+      
       showToast(`📍 GPS locked — ±${realGPS.accuracy}m accuracy`, 2500);
     },
     err => console.log('[GoodStop] Geolocation:', err.message),
@@ -792,6 +798,16 @@ function playSMSDemo() {
     };
   }
 
+  // Patch SIM_STEPS[1] (Detecting location) to use real GPS info
+  if (window.SIM_STEPS[1]) {
+    const original1 = window.SIM_STEPS[1].render;
+    window.SIM_STEPS[1].render = function() {
+      return original1.call(this)
+        .replace('NH-48, km 28.4', INCIDENT.label)
+        .replace('28.4595°N, 77.0266°E', `${INCIDENT.lat.toFixed(4)}°N, ${INCIDENT.lng.toFixed(4)}°E`);
+    };
+  }
+
   // Patch SIM_STEPS[2] (legal screen) for Dynamic Reverse-Geocoded Laws
   if (window.SIM_STEPS[2]) {
     const original2 = window.SIM_STEPS[2].render;
@@ -878,7 +894,8 @@ function playSMSDemo() {
       
       let html = original3.call(this);
       
-      // Inject actual nearest hospital if found
+      // Inject actual nearest hospital and location if found
+      html = html.replace('NH-48, km 28.4 · Gurugram', INCIDENT.label);
       if (window._nearestHospital) {
         html = html.replace('Medanta, Sector 38', window._nearestHospital);
       }
@@ -926,6 +943,12 @@ function playSMSDemo() {
         const alg = window.currentMedID.allergy;
         html = html.replace('Blood: O+ · Allergic: Penicillin · Condition: None', `Blood: ${bld} · Allergic: ${alg || 'None'} · Condition: ${window.currentMedID.conditions || 'None'}`);
       }
+      
+      // Inject actual nearest hospital instead of Medanta
+      if (window._nearestHospital) {
+        html = html.replace('Medanta Hospital', window._nearestHospital);
+      }
+      
       return html;
     };
   }
