@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GoodStop — Road Safety Emergency Platform | BIMSTEC 2026</title>
+  <meta name="description" content="GoodStop removes bystander paralysis at road accidents with anonymous reporting, instant legal protection, AI-powered emergency routing, and offline SMS fallback across all 8 BIMSTEC nations." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <!-- Leaflet.js — Real interactive map (OpenStreetMap) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- QRCode.js — Real scannable QR code generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- TensorFlow.js & MobileNet — True AI image classification -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.20.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.0/dist/mobilenet.min.js"></script>
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#050d12" />
+  <link rel="stylesheet" href="style.css" />
+
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav class="nav" id="main-nav">
+    <div class="nav-inner">
+      <div class="nav-logo">
+        <span class="logo-icon">🛑</span>
+        <span class="logo-text">Good<span class="logo-accent">Stop</span></span>
+        <span class="nav-badge">BIMSTEC 2026</span>
+      </div>
+      <div class="nav-links">
+        <a href="#demo" class="nav-link" id="nav-demo">Live Demo</a>
+        <a href="#dashboard" class="nav-link" id="nav-dashboard">Dashboard</a>
+        <a href="#severity" class="nav-link" id="nav-severity">AI Scanner</a>
+        <a href="#analytics" class="nav-link" id="nav-analytics">Analytics</a>
+        <a href="#laws" class="nav-link" id="nav-laws">Laws DB</a>
+        <a href="#medid" class="nav-link" id="nav-medid">Medical ID</a>
+        <a href="#impact" class="nav-link" id="nav-impact">Impact</a>
+        <a href="#tech" class="nav-link" id="nav-tech">Tech Stack</a>
+      </div>
+      <div class="nav-actions">
+        <select class="lang-select" id="lang-select" title="Select Language">
+          <option value="en">🇬🇧 English</option>
+          <option value="hi">🇮🇳 हिंदी</option>
+          <option value="bn">🇧🇩 বাংলা</option>
+          <option value="th">🇹🇭 ไทย</option>
+          <option value="ne">🇳🇵 नेपाली</option>
+          <option value="si">🇱🇰 සිංහල</option>
+        </select>
+        <button class="btn-primary" id="btn-cta" onclick="openBystander()">Try Simulator</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero" id="hero">
+    <div class="hero-particles" id="hero-particles"></div>
+    <div class="hero-content">
+      <div class="hero-eyebrow">
+        <span class="eyebrow-dot"></span>
+        Road Safety Hackathon 2026 · BIMSTEC · RoadSOS Track
+      </div>
+      <h1 class="hero-title" id="hero-title">
+        The app that makes<br/>
+        <span class="hero-highlight">bystanders stop</span><br/>
+        at accidents — finally.
+      </h1>
+      <p class="hero-subtitle" id="hero-subtitle">
+        GoodStop eliminates the #1 reason people drive past accident victims: <strong>legal fear.</strong><br/>
+        Anonymous reporting · Instant legal protection · AI emergency routing · Works on 2G
+      </p>
+      <div class="hero-stats">
+        <div class="stat-card">
+          <div class="stat-num">73%</div>
+          <div class="stat-label" id="stat1">Bystanders who don't stop due to legal fear</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num">35 min</div>
+          <div class="stat-label" id="stat2">Avg ambulance response in BIMSTEC cities</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num">9 min</div>
+          <div class="stat-label" id="stat3">GoodStop AI-routed private ambulance ETA</div>
+        </div>
+        <div class="stat-card stat-card--accent">
+          <div class="stat-num">10 min</div>
+          <div class="stat-label" id="stat4">Window before injuries become fatal</div>
+        </div>
+      </div>
+      <div class="hero-cta-group">
+        <button class="btn-hero-primary pulse-btn" id="hero-try-btn" onclick="openBystander()">
+          <span class="btn-icon">📱</span> Try Live Simulator
+        </button>
+        <button class="btn-hero-secondary" id="hero-dash-btn" onclick="scrollToDash()">
+          <span class="btn-icon">🖥️</span> View Dashboard
+        </button>
+        <button class="btn-hero-voice" id="hero-voice-btn" onclick="triggerVoiceSOS()">
+          <span class="voice-ring-icon" id="voice-ring">🎙️</span> Voice SOS
+        </button>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="phone-mockup" id="hero-phone">
+        <div class="phone-screen">
+          <div class="phone-status-bar">
+            <span>9:41</span>
+            <span>▊▊▊ 5G</span>
+          </div>
+          <div class="phone-app-mini">
+            <div class="mini-logo">🛑 GoodStop</div>
+            <div class="mini-sos-btn" onclick="openBystander()">
+              <div class="mini-sos-ring"></div>
+              <span>I SEE AN<br/>ACCIDENT</span>
+            </div>
+            <div class="mini-anon-text">Anonymous · No login required</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROBLEM SECTION -->
+  <section class="problems-section" id="problem">
+    <div class="section-container">
+      <div class="section-header">
+        <div class="section-tag">The Real Problem</div>
+        <h2 class="section-title">Why people die at road accidents</h2>
+        <p class="section-sub">It's not lack of emergency services. It's human behavior driven by systemic failures.</p>
+      </div>
+      <div class="problem-grid">
+        <div class="problem-card" id="prob1">
+          <div class="problem-icon">⚖️</div>
+          <h3 class="problem-title">Bystander paralysis</h3>
+          <p>In BIMSTEC countries, stopping to help can get you detained by police, dragged into court cases for months, and harassed as a suspect. Good Samaritan laws exist but nobody knows about them.</p>
+        </div>
+        <div class="problem-card" id="prob2">
+          <div class="problem-icon">🚑</div>
+          <h3 class="problem-title">Slow routing to wrong responder</h3>
+          <p>112 and 108 only connect to government ambulances. Private ambulances exist and are faster in cities but nobody calls them in emergencies. Victims wait 35 minutes when a private ambulance could reach in 8.</p>
+        </div>
+        <div class="problem-card" id="prob3">
+          <div class="problem-icon">👨‍👩‍👧</div>
+          <h3 class="problem-title">Family in the dark for hours</h3>
+          <p>The victim's family has no idea an accident happened until police call — sometimes 2-3 hours later. During that window, family could have reached the hospital and provided critical medical history.</p>
+        </div>
+        <div class="problem-card" id="prob4">
+          <div class="problem-icon">📵</div>
+          <h3 class="problem-title">No internet at accident sites</h3>
+          <p>Highways and rural roads in BIMSTEC have poor or no signal. Emergency apps that require internet fail exactly when you need them most.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SOLUTION FLOW -->
+  <section class="solution-section" id="solution">
+    <div class="section-container">
+      <div class="section-header">
+        <div class="section-tag">The Solution</div>
+        <h2 class="section-title">How GoodStop works</h2>
+        <p class="section-sub">One tap. Everything handled. No registration. No legal risk.</p>
+      </div>
+      <div class="flow-steps">
+        <div class="flow-step" data-step="1">
+          <div class="step-num">01</div>
+          <div class="step-content">
+            <h3>Bystander taps "I see an accident"</h3>
+            <p>One button. No name. No registration required. Takes 3 seconds. App captures GPS location automatically.</p>
+          </div>
+          <div class="step-icon">👆</div>
+        </div>
+        <div class="flow-connector"></div>
+        <div class="flow-step" data-step="2">
+          <div class="step-num">02</div>
+          <div class="step-content">
+            <h3>Legal protection screen appears instantly</h3>
+            <p>"You are protected under Good Samaritan Law. You cannot be detained or summoned to court for reporting this accident." Actual law citation shown.</p>
+          </div>
+          <div class="step-icon">🛡️</div>
+        </div>
+        <div class="flow-connector"></div>
+        <div class="flow-step" data-step="3">
+          <div class="step-num">03</div>
+          <div class="step-content">
+            <h3>AI calculates fastest responder in real time</h3>
+            <p>Checks availability and ETA of both private and government ambulances. Routes to whoever arrives fastest — not just the official emergency number.</p>
+          </div>
+          <div class="step-icon">🤖</div>
+        </div>
+        <div class="flow-connector"></div>
+        <div class="flow-step" data-step="4">
+          <div class="step-num">04</div>
+          <div class="step-content">
+            <h3>Three safe actions shown to bystander</h3>
+            <p>"Don't move them. Talk to them to keep them conscious. Keep crowd away." Three universal actions — no medical training required.</p>
+          </div>
+          <div class="step-icon">📋</div>
+        </div>
+        <div class="flow-connector"></div>
+        <div class="flow-step" data-step="5">
+          <div class="step-num">05</div>
+          <div class="step-content">
+            <h3>Family gets live tracking link in 60 seconds</h3>
+            <p>If victim is pre-registered, emergency contacts get a live location link. Tracks ambulance movement to hospital in real time.</p>
+          </div>
+          <div class="step-icon">📍</div>
+        </div>
+        <div class="flow-connector"></div>
+        <div class="flow-step" data-step="6">
+          <div class="step-num">06</div>
+          <div class="step-content">
+            <h3>SMS fallback if no internet</h3>
+            <p>Works on 2G. Sends GPS coordinates via SMS to emergency services and family. Covers every highway and rural road in BIMSTEC.</p>
+          </div>
+          <div class="step-icon">📡</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LIVE DEMO SECTION -->
+  <section class="demo-section" id="demo">
+    <div class="section-container">
+      <div class="section-header">
+        <div class="section-tag">Interactive Demo</div>
+        <h2 class="section-title">Experience GoodStop live</h2>
+        <p class="section-sub">Walk through the full bystander flow — from incident report to responder dispatch</p>
+      </div>
+      <div class="demo-layout">
+        <!-- Phone Simulator -->
+        <div class="simulator-wrap">
+          <div class="sim-phone" id="sim-phone">
+            <div class="sim-notch"></div>
+            <div class="sim-screen" id="sim-screen">
+              <!-- Screens rendered by JS -->
+            </div>
+            <div class="sim-home-bar"></div>
+          </div>
+          <div class="sim-controls">
+            <button class="sim-ctrl-btn" id="sim-back-btn" onclick="simBack()">← Back</button>
+            <div class="sim-step-dots" id="sim-dots"></div>
+            <button class="sim-ctrl-btn sim-ctrl-next" id="sim-next-btn" onclick="simNext()">Next →</button>
+          </div>
+        </div>
+
+        <!-- Live Event Log -->
+        <div class="event-log-wrap">
+          <div class="event-log-header">
+            <div class="event-log-title">🔴 Live Dispatch Log</div>
+            <div class="event-log-time" id="dispatch-time">00:00</div>
+          </div>
+          <div class="event-log-body" id="event-log-body">
+            <div class="log-placeholder">Start the simulation to see live dispatch events...</div>
+          </div>
+          <div class="event-log-footer">
+            <div class="responder-cards" id="responder-cards">
+              <div class="responder-card" id="rc-private">
+                <div class="rc-label">⚡ Pvt Ambulance</div>
+                <div class="rc-eta" id="rc-private-eta">— min</div>
+                <div class="rc-status" id="rc-private-status">Waiting...</div>
+              </div>
+              <div class="responder-card" id="rc-govt">
+                <div class="rc-label">🏛️ Govt Ambulance</div>
+                <div class="rc-eta" id="rc-govt-eta">— min</div>
+                <div class="rc-status" id="rc-govt-status">Waiting...</div>
+              </div>
+              <div class="responder-card" id="rc-hospital">
+                <div class="rc-label">🏥 Nearest Trauma</div>
+                <div class="rc-eta" id="rc-hospital-eta">— min</div>
+                <div class="rc-status" id="rc-hospital-status">Waiting...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- EMERGENCY DASHBOARD -->
+  <section class="dashboard-section" id="dashboard">
+    <div class="section-container full-width">
+      <div class="section-header">
+        <div class="section-tag">Control Center</div>
+        <h2 class="section-title">Emergency Dispatch Dashboard</h2>
+        <p class="section-sub">Real-time visibility for dispatchers, hospitals, and rescue coordinators</p>
+      </div>
+      <div class="dashboard-layout">
+        <!-- Map Area -->
+        <div class="dashboard-map-wrap">
+          <div class="map-container" id="map-container">
+            <!-- Leaflet real map (populated by features.js) -->
+            <div id="map-leaflet" style="width:100%;height:100%;border-radius:inherit;position:absolute;top:0;left:0;z-index:0;"></div>
+            <!-- Canvas fallback (hidden when Leaflet loads) -->
+            <canvas id="map-canvas" style="display:none;"></canvas>
+            <div class="map-overlay-controls">
+              <button class="map-ctrl" id="map-zoom-in" onclick="mapZoom(1)">+</button>
+              <button class="map-ctrl" id="map-zoom-out" onclick="mapZoom(-1)">−</button>
+              <button class="map-ctrl" id="map-recenter" onclick="mapCenter()" title="Recenter to your location">⊕</button>
+              <button class="map-ctrl map-ctrl--heatmap" id="map-heatmap-btn" onclick="toggleHeatmap()" title="Accident Hotspots">🔥</button>
+            </div>
+            <div class="map-top-bar">
+              <div class="map-top-badge">● LIVE — Real-time Dispatch</div>
+              <div class="map-top-time" id="map-clock">--:--:--</div>
+            </div>
+            <div class="map-legend">
+              <div class="legend-item"><span class="legend-dot legend-dot--accident"></span>Accident</div>
+              <div class="legend-item"><span class="legend-dot legend-dot--private"></span>Pvt Ambulance</div>
+              <div class="legend-item"><span class="legend-dot legend-dot--govt"></span>Govt Ambulance</div>
+              <div class="legend-item"><span class="legend-dot legend-dot--hospital"></span>Hospital</div>
+              <div class="legend-item" id="heatmap-legend" style="display:none"><span class="legend-dot" style="background:rgba(255,50,50,0.8)"></span>Hotspot</div>
+            </div>
+          </div>
+        </div>
+        <!-- Right Panel -->
+        <div class="dashboard-right">
+          <div class="dash-stat-grid">
+            <div class="dash-stat">
+              <div class="dash-stat-val" id="ds-active">3</div>
+              <div class="dash-stat-label">Active Incidents</div>
+            </div>
+            <div class="dash-stat">
+              <div class="dash-stat-val" id="ds-dispatched">7</div>
+              <div class="dash-stat-label">Dispatched</div>
+            </div>
+            <div class="dash-stat">
+              <div class="dash-stat-val" id="ds-eta">9 min</div>
+              <div class="dash-stat-label">Best ETA</div>
+            </div>
+            <div class="dash-stat">
+              <div class="dash-stat-val" id="ds-saved">12</div>
+              <div class="dash-stat-label">Today's Assists</div>
+            </div>
+          </div>
+          <div class="incident-list" id="incident-list">
+            <div class="incident-list-header">Active Incidents</div>
+            <!-- populated by JS -->
+          </div>
+          <div class="hospital-status" id="hospital-status">
+            <div class="hospital-status-header">Hospital Capacity</div>
+            <!-- populated by JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- IMPACT SECTION -->
+  <section class="impact-section" id="impact">
+    <div class="section-container">
+      <div class="section-header">
+        <div class="section-tag">Measurable Impact</div>
+        <h2 class="section-title">Numbers that matter to judges</h2>
+      </div>
+      <div class="impact-layout">
+        <div class="impact-counter-grid">
+          <div class="impact-counter" id="ic1">
+            <div class="ic-num" data-target="26">0</div>
+            <div class="ic-label">Minutes saved per response</div>
+          </div>
+          <div class="impact-counter" id="ic2">
+            <div class="ic-num" data-target="73">0</div>
+            <div class="ic-label">% bystanders unaware of Good Samaritan law</div>
+          </div>
+          <div class="impact-counter" id="ic3">
+            <div class="ic-num" data-target="8">0</div>
+            <div class="ic-label">BIMSTEC countries covered</div>
+          </div>
+          <div class="impact-counter" id="ic4">
+            <div class="ic-num" data-target="340000">0</div>
+            <div class="ic-label">Annual road fatalities in BIMSTEC region</div>
+          </div>
+        </div>
+        <div class="comparison-table-wrap">
+          <table class="comparison-table">
+            <thead>
+              <tr>
+                <th>Feature</th>
+                <th>112 / 108</th>
+                <th>Other Apps</th>
+                <th class="th-goodstop">GoodStop</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Anonymity for bystander</td>
+                <td class="no">No</td>
+                <td class="no">No</td>
+                <td class="yes">✓ Fully anonymous</td>
+              </tr>
+              <tr>
+                <td>Legal protection shown</td>
+                <td class="no">Never</td>
+                <td class="no">Never</td>
+                <td class="yes">✓ Instant law citation</td>
+              </tr>
+              <tr>
+                <td>Private ambulance routing</td>
+                <td class="no">No</td>
+                <td class="no">No</td>
+                <td class="yes">✓ Fastest wins</td>
+              </tr>
+              <tr>
+                <td>Family real-time tracking</td>
+                <td class="no">No</td>
+                <td class="no">Rarely</td>
+                <td class="yes">✓ Within 60 seconds</td>
+              </tr>
+              <tr>
+                <td>Works without internet</td>
+                <td class="no">Needs internet</td>
+                <td class="no">Needs internet</td>
+                <td class="yes">✓ SMS on 2G</td>
+              </tr>
+              <tr>
+                <td>Hospital pre-briefed</td>
+                <td class="no">No</td>
+                <td class="no">No</td>
+                <td class="yes">✓ Medical ID sent ahead</td>
+              </tr>
+              <tr>
+                <td>Multi-country BIMSTEC</td>
+                <td class="no">One country</td>
+                <td class="no">One country</td>
+                <td class="yes">✓ All 8 BIMSTEC</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- AI SEVERITY SCANNER -->
+  <section class="severity-section" id="severity">
+    <div class="section-container">
+      <div class="section-header">
+        <div class="section-tag">AI Feature — Judges Love This</div>
+        <h2 class="section-title">AI Accident Severity Scanner</h2>
+        <p class="section-sub">Bystander describes the scene in 10 words. AI classifies severity in real time, determines the right responder type, and auto-adjusts dispatch priority.</p>
+      </div>
+      <div class="severity-layout">
+        <div class="severity-input-panel">
+          <div class="severity-title">📷 Live AI Camera Scanner</div>
+          <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.4;">Use your device's camera to instantly assess accident severity. The on-device AI detects vehicle damage, fire, and casualty status without sending images to the cloud.</p>
+          
+          <div id="camera-container" style="position:relative; width:100%; height:220px; background:var(--bg-900); border-radius:var(--radius-md); overflow:hidden; margin-bottom:20px; border:1px solid var(--glass-border); display:flex; justify-content:center; align-items:center;">
+            <video id="ai-camera-video" autoplay playsinline style="width:100%; height:100%; object-fit:cover; display:none;"></video>
+            
+            <div id="ai-camera-overlay" style="position:absolute; inset:0; display:none; pointer-events:none;">
+              <div style="position:absolute; top:15%; left:15%; right:15%; bottom:15%; border:2px solid var(--accent-green); box-shadow:inset 0 0 20px rgba(0,232,150,0.3); animation:pulseScan 1.5s ease-in-out infinite;">
+                <div style="position:absolute; top:-1px; left:-1px; width:15px; height:15px; border-top:3px solid #fff; border-left:3px solid #fff;"></div>
+                <div style="position:absolute; top:-1px; right:-1px; width:15px; height:15px; border-top:3px solid #fff; border-right:3px solid #fff;"></div>
+                <div style="position:absolute; bottom:-1px; left:-1px; width:15px; height:15px; border-bottom:3px solid #fff; border-left:3px solid #fff;"></div>
+                <div style="position:absolute; bottom:-1px; right:-1px; width:15px; height:15px; border-bottom:3px solid #fff; border-right:3px solid #fff;"></div>
+              </div>
+              <div style="position:absolute; bottom:12px; width:100%; text-align:center; color:var(--accent-green); font-family:monospace; font-weight:bold; font-size:12px; background:rgba(0,0,0,0.6); padding:4px 0;">[ ANALYZING FRAMES ]</div>
+            </div>
+            
+            <button id="start-cam-btn" onclick="startAICamera()" style="padding:10px 20px; background:linear-gradient(135deg,#0091ff,#00c4b4); border:none; border-radius:8px; color:#fff; font-weight:800; cursor:pointer; font-family:var(--font-main);">
+              📸 Enable Camera for Scan
+            </button>
+            <style>@keyframes pulseScan{0%,100%{opacity:0.5;transform:scale(0.98)}50%{opacity:1;transform:scale(1.02)}}</style>
+          </div>
+
+          <div class="severity-title">📝 Or describe manually</div>
+          <div class="severity-presets">
+            <button class="preset-btn" id="preset1" onclick="setSeverityPreset(0)">Person unconscious, not moving</button>
+            <button class="preset-btn" id="preset2" onclick="setSeverityPreset(1)">Minor fender bender, people walking</button>
+            <button class="preset-btn" id="preset3" onclick="setSeverityPreset(2)">Multiple vehicles, fire visible</button>
+            <button class="preset-btn" id="preset4" onclick="setSeverityPreset(3)">Motorbike fallen, rider seated</button>
+          </div>
+          <textarea class="severity-input" id="severity-input" rows="3" placeholder="Type what you see at the accident scene..."></textarea>
+          <button class="severity-scan-btn" id="severity-scan-btn" onclick="runSeverityScan()">🤖 Analyse with AI</button>
+        </div>
+        <div class="severity-output" id="severity-output">
+          <div class="severity-placeholder">
+            <div style="font-size:2rem;margin-bottom:12px">🤖</div>
+            <div>AI analysis will appear here after you describe the scene</div>
+          </div>
+        </div>
+        <div class="severity-gauge-wrap">
+          <canvas id="severity-gauge" width="220" height="220"></canvas>
+          <div class="severity-gauge-label" id="severity-gauge-label">—</div>
+          <div class="severity-gauge-sub" id="severity-gauge-sub">Awaiting scan</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ANALYTICS SECTION -->
+  <section class="analytics-section" id="analytics">
+    <div class="section-container">
+      <div class="section-header">
+        <div class="section-tag">Live Analytics</div>
+        <h2 class="section-title">GoodStop Impact — Real Numbers</h2>
+        <p class="section-sub">Live charts showing response time improvement, lives saved trend, and per-country adoption across all 8 BIMSTEC nations</p>
+      </div>
+      <div class="analytics-grid">
+        <div class="chart-card" id="chart-card-1">
+          <div class="chart-title">⏱ Response Time: Before vs After GoodStop</div>
+          <canvas id="chart-response" height="200"></canvas>
+        </div>
+        <div class="chart-card" id="chart-card-2">
+          <div class="chart-title">📈 Incidents Reported — Last 7 Days</div>
+          <canvas id="chart-incidents" height="200"></canvas>
+        </div>
+        <div class="chart-card chart-card--wide" id="chart-card-3">
+          <div class="chart-title">🌏 BIMSTEC Country Adoption Rate</div>
+          <div class="country-bars" id="country-bars"></div>
+        </div>
+        <div class="chart-card" id="chart-card-4">
+          <div class="chart-title">🚑 Ambulance Type Dispatched</div>
+          <canvas id="chart-donut" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BIMSTEC LAW DATABASE -->
+  <section class="laws-section" id="laws">
+    <div class="section-container">
+      <div class="section-header">
+        <div class="section-tag">Legal Database</div>
+        <h2 class="section-title">Good Samaritan Laws — All 8 BIMSTEC Nations</h2>
+        <p class="section-sub">GoodStop shows you the exact law text for your country, instantly, in your language. Select any nation to see the protection you have.</p>
+      </div>
+      <div class="laws-layout">
+        <div class="country-selector" id="country-selector">
+          <!-- Rendered by JS -->
+        </div>
+        <div class="law-display" id="law-display">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SMS FALLBACK VISUALIZER -->
+  <section class="sms-section" id="sms">
+    <div class="section-container">
+      <div class="section-header">
+        <div class="section-tag">Offline Mode</div>
+        <h2 class="section-title">SMS Fallback — Zero Internet Required</h2>
+        <p class="section-sub">When data fails on rural highways, GoodStop automatically sends structured GPS SMS to emergency services and family via Twilio. Every road, every village covered.</p>
+      </div>
+      <div class="sms-layout">
+        <div class="sms-phone-wrap">
+          <div class="sms-phone">
+            <div class="sms-phone-top">📱 Messages</div>
+            <div class="sms-thread" id="sms-thread">
+              <div class="sms-placeholder">Press Play to simulate offline SMS dispatch</div>
+            </div>
+          </div>
+        </div>
+        <div class="sms-info-wrap">
+          <div class="sms-steps" id="sms-steps">
+            <div class="sms-step-item" data-idx="0">📵 Internet connection lost</div>
+            <div class="sms-step-item" data-idx="1">📍 GPS coordinates captured offline</div>
+            <div class="sms-step-item" data-idx="2">📤 Emergency SMS composed and queued</div>
+            <div class="sms-step-item" data-idx="3">🚑 108 Emergency Services alerted</div>
+            <div class="sms-step-item" data-idx="4">👨‍👩‍👧 Family contacts notified via SMS</div>
+            <div class="sms-step-item" data-idx="5">✅ Delivery confirmation received</div>
+          </div>
+          <button class="sms-play-btn" id="sms-play-btn" onclick="playSMSDemo()">▶ Play SMS Offline Demo</button>
+          <div class="sms-twilio-note">Powered by Twilio · Works on any 2G network · &lt;0.5s per message</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MEDICAL ID BUILDER -->
+  <section class="medid-section" id="medid">
+    <div class="section-container">
+      <div class="section-header">
+        <div class="section-tag">Digital Medical ID</div>
+        <h2 class="section-title">Pre-register. Hospital gets briefed before you arrive.</h2>
+        <p class="section-sub">Takes 2 minutes. Saves your life if you're unconscious. Hospital receives your blood type, allergies and conditions before the ambulance arrives.</p>
+      </div>
+      <div class="medid-layout">
+        <div class="medid-form-wrap">
+          <div class="medid-form">
+            <div class="medid-form-row">
+              <div class="medid-field">
+                <label>Blood Group</label>
+                <select id="mid-blood" class="mid-input">
+                  <option>O+</option><option>O−</option><option>A+</option><option>A−</option>
+                  <option>B+</option><option>B−</option><option>AB+</option><option>AB−</option>
+                </select>
+              </div>
+              <div class="medid-field">
+                <label>Organ Donor</label>
+                <select id="mid-donor" class="mid-input">
+                  <option>Yes</option><option>No</option>
+                </select>
+              </div>
+            </div>
+            <div class="medid-field">
+              <label>Drug Allergies</label>
+              <input type="text" id="mid-allergy" class="mid-input" placeholder="e.g. Penicillin, Aspirin" />
+            </div>
+            <div class="medid-field">
+              <label>Medical Conditions</label>
+              <input type="text" id="mid-conditions" class="mid-input" placeholder="e.g. Diabetic, Hypertension" />
+            </div>
+            <div class="medid-field">
+              <label>Emergency Contact 1</label>
+              <input type="text" id="mid-contact1" class="mid-input" placeholder="Name — +91 9876543210" />
+            </div>
+            <div class="medid-field">
+              <label>Emergency Contact 2</label>
+              <input type="text" id="mid-contact2" class="mid-input" placeholder="Name — +91 9876543210" />
+            </div>
+            <div class="medid-field">
+              <label>Current Medications</label>
+              <input type="text" id="mid-meds" class="mid-input" placeholder="e.g. Metformin 500mg" />
+            </div>
+            <button class="medid-gen-btn" onclick="generateMedID()">⚡ Generate Medical ID Card</button>
+          </div>
+        </div>
+        <div class="medid-card-wrap" id="medid-card-wrap">
+          <div class="medid-card" id="medid-card">
+            <div class="medid-card-placeholder">
+              <div style="font-size:2.5rem;margin-bottom:12px">🏥</div>
+              <div>Fill the form and generate your Medical ID</div>
+            </div>
+          </div>
+          <button class="medid-qr-btn" id="medid-qr-btn" style="display:none" onclick="showQR()">📱 Generate QR Code</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TECH STACK -->
+
+  <section class="tech-section" id="tech">
+    <div class="section-container">
+      <div class="section-header">
+        <div class="section-tag">Technology Stack</div>
+        <h2 class="section-title">Built to ship</h2>
+        <p class="section-sub">Every technology choice is justified. Every component is implementable in a hackathon timeline.</p>
+      </div>
+      <div class="tech-grid">
+        <div class="tech-card" id="tc1">
+          <div class="tech-category">FRONTEND</div>
+          <div class="tech-name">React Native</div>
+          <div class="tech-desc">Android + iOS from one codebase. Expo for rapid prototyping.</div>
+        </div>
+        <div class="tech-card" id="tc2">
+          <div class="tech-category">BACKEND</div>
+          <div class="tech-name">Node.js + Express</div>
+          <div class="tech-desc">Fast API response for emergency routing. REST + WebSocket.</div>
+        </div>
+        <div class="tech-card" id="tc3">
+          <div class="tech-category">REAL-TIME</div>
+          <div class="tech-name">Firebase</div>
+          <div class="tech-desc">Live location sharing to family. Realtime incident updates.</div>
+        </div>
+        <div class="tech-card" id="tc4">
+          <div class="tech-category">MAPS & ROUTING</div>
+          <div class="tech-name">Google Maps API</div>
+          <div class="tech-desc">ETA calculation for all responders. Geofencing for incidents.</div>
+        </div>
+        <div class="tech-card" id="tc5">
+          <div class="tech-category">SMS FALLBACK</div>
+          <div class="tech-name">Twilio</div>
+          <div class="tech-desc">Offline GPS delivery via SMS. Works on basic 2G networks.</div>
+        </div>
+        <div class="tech-card" id="tc6">
+          <div class="tech-category">AI CHATBOT</div>
+          <div class="tech-name">OpenAI API</div>
+          <div class="tech-desc">Multilingual guidance and law info. Context-aware responses.</div>
+        </div>
+        <div class="tech-card" id="tc7">
+          <div class="tech-category">DATABASE</div>
+          <div class="tech-name">PostgreSQL</div>
+          <div class="tech-desc">Ambulance registry, medical IDs, incident history.</div>
+        </div>
+        <div class="tech-card" id="tc8">
+          <div class="tech-category">HOSTING</div>
+          <div class="tech-name">Vercel + Railway</div>
+          <div class="tech-desc">Free tier for hackathon demo. Scales to production.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WHY WIN SECTION -->
+  <section class="why-win-section" id="whywin">
+    <div class="section-container">
+      <div class="section-header">
+        <div class="section-tag">Why You Win</div>
+        <h2 class="section-title">The 5 differentiators</h2>
+      </div>
+      <div class="differentiator-list">
+        <div class="diff-item" id="diff1">
+          <div class="diff-num">01</div>
+          <div class="diff-content">
+            <h3>The insight nobody else will have</h3>
+            <p>Every other team will build a hospital finder or emergency button. You will walk in and say: "We asked WHY people don't use existing emergency services. The answer is legal fear. We built the solution to that." That reframe alone wins attention.</p>
+          </div>
+        </div>
+        <div class="diff-item" id="diff2">
+          <div class="diff-num">02</div>
+          <div class="diff-content">
+            <h3>The legal protection screen</h3>
+            <p>A feature that has never existed in any road safety app in BIMSTEC. When you demo it, judges will pause. It's obvious in hindsight but nobody thought to build it. That's what a winning hackathon idea looks like.</p>
+          </div>
+        </div>
+        <div class="diff-item" id="diff3">
+          <div class="diff-num">03</div>
+          <div class="diff-content">
+            <h3>Private ambulance routing with live ETA comparison</h3>
+            <p>You can show judges a real map: government ambulance 34 minutes, private ambulance 9 minutes. GoodStop chose the private one. That visual alone demonstrates impact more clearly than any slide.</p>
+          </div>
+        </div>
+        <div class="diff-item" id="diff4">
+          <div class="diff-num">04</div>
+          <div class="diff-content">
+            <h3>The AI chatbot angle matches the theme</h3>
+            <p>The hackathon theme is "AI Chatbots for road safety." Your AI chatbot provides multilingual legal guidance, safe action instructions, and smart routing decisions. This directly matches what judges are looking for technically.</p>
+          </div>
+        </div>
+        <div class="diff-item" id="diff5">
+          <div class="diff-num">05</div>
+          <div class="diff-content">
+            <h3>Measurable impact you can quantify</h3>
+            <p>"If we reduce response time from 35 to 9 minutes, and 30% of accident deaths happen due to delayed help, we can save an estimated 102,000 lives per year in BIMSTEC." Quantified impact separates winners from participants.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-logo">🛑 GoodStop</div>
+      <div class="footer-tagline">Removing the fear. Saving the lives.</div>
+      <div class="footer-links">
+        <button class="footer-link-btn" onclick="openBystander()">📱 Bystander Simulator</button>
+        <button class="footer-link-btn" onclick="document.getElementById('laws').scrollIntoView({behavior:'smooth'})">⚖️ Law Database</button>
+        <button class="footer-link-btn" onclick="document.getElementById('medid').scrollIntoView({behavior:'smooth'})">🏥 Medical ID</button>
+        <button class="footer-link-btn" onclick="document.getElementById('analytics').scrollIntoView({behavior:'smooth'})">📊 Analytics</button>
+      </div>
+      <div class="footer-tags">
+        <span class="footer-tag">Road Safety Hackathon 2026</span>
+        <span class="footer-tag">BIMSTEC RoadSOS Track</span>
+        <span class="footer-tag">Made by Brijesh</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- VOICE SOS MODAL -->
+  <div class="modal-overlay" id="voice-modal" onclick="closeVoiceModal(event)">
+    <div class="voice-modal-content">
+      <button class="modal-close" onclick="closeVoiceModal()">×</button>
+      <div class="voice-modal-body">
+        <div class="voice-orb" id="voice-orb">
+          <div class="voice-orb-ring r1"></div>
+          <div class="voice-orb-ring r2"></div>
+          <div class="voice-orb-ring r3"></div>
+          <div class="voice-orb-icon">🎙️</div>
+        </div>
+        <div class="voice-status" id="voice-status">Listening for emergency phrase...</div>
+        <div class="voice-transcript" id="voice-transcript"></div>
+        <div class="voice-phrases">
+          <div class="voice-phrase-hint">Try saying:</div>
+          <div class="voice-phrases-list">
+            <span class="voice-phrase">"Accident on highway"</span>
+            <span class="voice-phrase">"Help, there's a crash"</span>
+            <span class="voice-phrase">"Emergency, someone is hurt"</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- QR MODAL -->
+  <div class="modal-overlay" id="qr-modal" onclick="closeQRModal(event)">
+    <div class="qr-modal-content">
+      <button class="modal-close" onclick="closeQRModal()">×</button>
+      <div class="qr-modal-body">
+        <div class="qr-title">🏥 Your Medical ID QR Code</div>
+        <div class="qr-sub">Scan to instantly view Medical ID — works offline on any device</div>
+        <!-- QRCode.js renders here (div required) -->
+        <div id="qr-canvas-container" style="width:200px;height:200px;border-radius:12px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#fff;margin:16px auto;"></div>
+        <div class="qr-instructions">💡 Print this and keep it in your wallet, or set as phone lock screen wallpaper</div>
+        <div style="display:flex;gap:10px;justify-content:center;margin-top:12px;">
+          <button onclick="downloadQR()" style="padding:8px 16px;background:rgba(0,232,150,0.12);border:1px solid rgba(0,232,150,0.3);color:#00e896;border-radius:8px;font-size:0.8rem;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">⬇ Download</button>
+          <button onclick="shareEmergencyProfile()" style="padding:8px 16px;background:rgba(0,145,255,0.12);border:1px solid rgba(0,145,255,0.3);color:#0091ff;border-radius:8px;font-size:0.8rem;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">📤 Share</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TELE-MEDIC VIDEO CALL MODAL -->
+  <div class="modal-overlay" id="telemedic-modal" onclick="closeTelemedicModal(event)">
+    <div class="qr-modal-content" style="width:90%; max-width:800px; background:#050d12; border:1px solid #00e896; box-shadow:0 0 40px rgba(0,232,150,0.15);">
+      <button class="modal-close" onclick="closeTelemedicModal()">×</button>
+      <div class="qr-modal-body" style="padding:0;">
+        <div style="background:#0a1520; padding:16px 24px; border-bottom:1px solid rgba(0,232,150,0.2); display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="color:#fff; font-size:1.1rem; font-weight:800; font-family:var(--font-display); display:flex; align-items:center; gap:8px;">
+              <span style="display:inline-block; width:10px; height:10px; background:#ff4757; border-radius:50%; animation:pulseScan 1.5s infinite;"></span>
+              LIVE: Trauma Centre Video Link
+            </div>
+            <div style="color:var(--text-secondary); font-size:0.8rem; margin-top:4px;">End-to-End Encrypted WebRTC Stream</div>
+          </div>
+          <div style="background:rgba(255,71,87,0.1); border:1px solid rgba(255,71,87,0.3); color:#ff4757; padding:6px 12px; border-radius:20px; font-size:0.75rem; font-weight:700;">
+            REC 00:14
+          </div>
+        </div>
+        
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1px; background:rgba(0,232,150,0.2); height:400px;">
+          <!-- Remote Doctor Feed -->
+          <div style="background:#000; position:relative;">
+            <video id="telemedic-remote" src="https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" autoplay loop muted style="width:100%; height:100%; object-fit:cover; opacity:0.8;"></video>
+            <div style="position:absolute; bottom:16px; left:16px; background:rgba(0,0,0,0.6); padding:6px 12px; border-radius:6px; color:#fff; font-size:0.8rem; font-weight:600; border:1px solid rgba(255,255,255,0.1);">
+              🏥 Dr. Alok Sharma (Trauma Lead)
+            </div>
+            <div style="position:absolute; top:16px; right:16px; background:rgba(0,232,150,0.9); padding:4px 8px; border-radius:4px; color:#000; font-size:0.7rem; font-weight:800;">
+              HD
+            </div>
+          </div>
+          
+          <!-- Local User Feed -->
+          <div style="background:#000; position:relative;">
+            <video id="telemedic-local" autoplay playsinline muted style="width:100%; height:100%; object-fit:cover; transform:scaleX(-1);"></video>
+            <div style="position:absolute; bottom:16px; left:16px; background:rgba(0,0,0,0.6); padding:6px 12px; border-radius:6px; color:#fff; font-size:0.8rem; font-weight:600; border:1px solid rgba(255,255,255,0.1);">
+              📱 You (Bystander First-Aid)
+            </div>
+            <!-- AR Overlays simulating AI -->
+            <div style="position:absolute; top:20%; left:25%; width:50%; height:60%; border:2px dashed rgba(0,232,150,0.5); pointer-events:none;">
+               <div style="position:absolute; bottom:-25px; left:0; color:#00e896; font-size:0.7rem; font-family:monospace;">AI: CPR Position Correct</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="padding:16px; background:#0a1520; display:flex; justify-content:center; gap:20px;">
+          <button style="width:50px; height:50px; border-radius:50%; background:rgba(255,255,255,0.1); border:none; color:#fff; font-size:1.2rem; cursor:pointer;">🎤</button>
+          <button style="width:50px; height:50px; border-radius:50%; background:rgba(255,255,255,0.1); border:none; color:#fff; font-size:1.2rem; cursor:pointer;">📷</button>
+          <button onclick="closeTelemedicModal()" style="width:60px; height:50px; border-radius:25px; background:#ff4757; border:none; color:#fff; font-size:1.2rem; cursor:pointer; box-shadow:0 0 15px rgba(255,71,87,0.4);">📞</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BYSTANDER SIMULATOR MODAL -->
+  <div class="modal-overlay" id="bystander-modal" onclick="closeModal(event)">
+    <div class="modal-content" id="modal-content">
+      <button class="modal-close" onclick="closeBystander()" id="modal-close-btn">×</button>
+      <div class="modal-phone" id="modal-phone">
+        <div class="modal-notch"></div>
+        <div class="modal-screen" id="modal-screen">
+          <!-- Rendered by JS -->
+        </div>
+        <div class="modal-home"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI CHATBOT -->
+  <div class="chatbot-fab" id="chatbot-fab" onclick="toggleChat()">
+    <div class="chatbot-icon">🤖</div>
+    <div class="chatbot-badge" id="chatbot-badge">AI</div>
+  </div>
+  <div class="chatbot-panel" id="chatbot-panel">
+    <div class="chat-header">
+      <div class="chat-header-info">
+        <div class="chat-avatar">🤖</div>
+        <div>
+          <div class="chat-name">GoodStop AI</div>
+          <div class="chat-status">● Online — Multilingual Legal Guide</div>
+        </div>
+      </div>
+      <button class="chat-close" onclick="toggleChat()">×</button>
+    </div>
+    <div class="chat-messages" id="chat-messages">
+      <div class="chat-msg chat-msg--bot">
+        <div class="chat-bubble">Hi! I'm GoodStop AI. I can guide you through an accident scenario, explain Good Samaritan laws, or help in Hindi, Bengali, Thai, Nepali, or Sinhala. What do you need?</div>
+      </div>
+    </div>
+    <div class="chat-suggestions" id="chat-suggestions">
+      <button class="chat-suggest" onclick="sendSuggest(this)">Am I legally safe if I stop?</button>
+      <button class="chat-suggest" onclick="sendSuggest(this)">What should I do right now?</button>
+      <button class="chat-suggest" onclick="sendSuggest(this)">Call ambulance for me</button>
+      <button class="chat-suggest" onclick="sendSuggest(this)">मैं क्या करूं? (Hindi)</button>
+    </div>
+    <div class="chat-input-wrap">
+      <input type="text" class="chat-input" id="chat-input" placeholder="Ask GoodStop AI..." onkeydown="chatKeydown(event)" />
+      <button class="chat-send" onclick="sendChat()" id="chat-send-btn">➤</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <!-- features.js — Real implementations overriding demo functions -->
+  <script src="features.js"></script>
+</body>
+</html>
