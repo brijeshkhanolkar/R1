@@ -518,145 +518,52 @@ const mapEntities = {
 };
 
 function initMap() {
-  const canvas = document.getElementById('map-canvas');
-  if (!canvas) return;
-  const wrap = document.getElementById('map-container');
-  canvas.width = wrap.offsetWidth || MAP_W;
-  canvas.height = MAP_H;
-  drawMap();
-  setInterval(drawMap, 50);
-}
-
-function drawMap() {
-  const canvas = document.getElementById('map-canvas');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const W = canvas.width, H = canvas.height;
-  animFrame++;
-
-  // Background
-  ctx.fillStyle = '#0a1520';
-  ctx.fillRect(0, 0, W, H);
-
-  // Grid
-  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
-  ctx.lineWidth = 1;
-  for (let x = 0; x < W; x += 40) {
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
-  }
-  for (let y = 0; y < H; y += 40) {
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
-  }
-
-  const px = (r) => r * W;
-  const py = (r) => r * H;
-
-  // Roads
-  mapEntities.roads.forEach(r => {
-    ctx.beginPath();
-    ctx.strokeStyle = 'rgba(100,130,160,0.25)';
-    ctx.lineWidth = r.width;
-    ctx.moveTo(px(r.x1), py(r.y1));
-    ctx.lineTo(px(r.x2), py(r.y2));
-    ctx.stroke();
-  });
-
-  // Route lines (from ambulance to accident)
-  const acc = mapEntities.accident;
-  mapEntities.ambulances.forEach((amb, i) => {
-    const dashOffset = (animFrame * (i === 0 ? 2 : 1)) % 20;
-    ctx.beginPath();
-    ctx.setLineDash([8, 6]);
-    ctx.lineDashOffset = -dashOffset;
-    ctx.strokeStyle = amb.color + (i === 0 ? 'cc' : '44');
-    ctx.lineWidth = i === 0 ? 2.5 : 1.5;
-    ctx.moveTo(px(amb.x), py(amb.y));
-    ctx.lineTo(px(acc.x), py(acc.y));
-    ctx.stroke();
-    ctx.setLineDash([]);
-
-    // Move ambulance toward accident
-    if (i === 0) {
-      amb.progress = Math.min(amb.progress + 0.002, 0.95);
+  const container = document.getElementById('map-leaflet');
+  if (!container) return;
+  document.getElementById('map-canvas').style.display = 'none';
+  
+  if (!window.leafletMap) {
+    window.leafletMap = L.map('map-leaflet').setView([INCIDENT.lat, INCIDENT.lng], 14);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+    }).addTo(window.leafletMap);
+    
+    const incIcon = L.divIcon({className: 'legend-dot legend-dot--accident', iconSize: [16,16]});
+    const hospIcon = L.divIcon({className: 'legend-dot legend-dot--hospital', iconSize: [16,16]});
+    
+    L.marker([INCIDENT.lat, INCIDENT.lng], {icon: incIcon}).addTo(window.leafletMap).bindPopup('Accident: ' + INCIDENT.label);
+    
+    if (window.HOSPITALS && window.HOSPITALS.length > 0) {
+      window.HOSPITALS.forEach(h => {
+        L.marker([h.lat, h.lng], {icon: hospIcon}).addTo(window.leafletMap).bindPopup(h.name);
+      });
     }
-  });
-
-  // Hospitals
-  mapEntities.hospitals.forEach(h => {
-    ctx.beginPath();
-    ctx.arc(px(h.x), py(h.y), 10, 0, Math.PI * 2);
-    ctx.fillStyle = h.color + '22';
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(px(h.x), py(h.y), 8, 0, Math.PI * 2);
-    ctx.fillStyle = h.color;
-    ctx.fill();
-    ctx.fillStyle = '#000';
-    ctx.font = 'bold 8px Inter, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('H', px(h.x), py(h.y));
-    ctx.fillStyle = 'rgba(255,255,255,0.6)';
-    ctx.font = '10px Inter';
-    ctx.fillText(h.label, px(h.x), py(h.y) + 18);
-  });
-
-  // Ambulances
-  mapEntities.ambulances.forEach((amb, i) => {
-    const cx = px(amb.x) + (px(acc.x) - px(amb.x)) * (i === 0 ? amb.progress : 0);
-    const cy = py(amb.y) + (py(acc.y) - py(amb.y)) * (i === 0 ? amb.progress : 0);
-
-    // Glow
-    if (i === 0) {
-      const grd = ctx.createRadialGradient(cx, cy, 2, cx, cy, 20);
-      grd.addColorStop(0, amb.color + '66');
-      grd.addColorStop(1, 'transparent');
-      ctx.beginPath();
-      ctx.arc(cx, cy, 20, 0, Math.PI * 2);
-      ctx.fillStyle = grd;
-      ctx.fill();
+  } else {
+    window.leafletMap.setView([INCIDENT.lat, INCIDENT.lng], 14);
+    
+    // Clear old markers
+    window.leafletMap.eachLayer(layer => {
+      if (layer instanceof L.Marker) {
+        window.leafletMap.removeLayer(layer);
+      }
+    });
+    
+    const incIcon = L.divIcon({className: 'legend-dot legend-dot--accident', iconSize: [16,16]});
+    const hospIcon = L.divIcon({className: 'legend-dot legend-dot--hospital', iconSize: [16,16]});
+    
+    L.marker([INCIDENT.lat, INCIDENT.lng], {icon: incIcon}).addTo(window.leafletMap).bindPopup('Accident: ' + INCIDENT.label);
+    
+    if (window.HOSPITALS) {
+      window.HOSPITALS.forEach(h => {
+        L.marker([h.lat, h.lng], {icon: hospIcon}).addTo(window.leafletMap).bindPopup(h.name);
+      });
     }
-
-    ctx.beginPath();
-    ctx.arc(cx, cy, 9, 0, Math.PI * 2);
-    ctx.fillStyle = amb.color + (i === 0 ? 'ff' : '77');
-    ctx.fill();
-    ctx.fillStyle = '#000';
-    ctx.font = 'bold 8px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('🚑', cx, cy);
-    ctx.fillStyle = 'rgba(255,255,255,0.7)';
-    ctx.font = '9px Inter';
-    ctx.fillText(i === 0 ? `${Math.round(9 - 9 * amb.progress)}m` : '34m', cx, cy + 16);
-  });
-
-  // Accident marker
-  const pulse = Math.sin(animFrame * 0.08) * 0.5 + 0.5;
-  ctx.beginPath();
-  ctx.arc(px(acc.x), py(acc.y), 20 + pulse * 10, 0, Math.PI * 2);
-  ctx.fillStyle = `rgba(255, 71, 87, ${0.05 + pulse * 0.08})`;
-  ctx.fill();
-  ctx.beginPath();
-  ctx.arc(px(acc.x), py(acc.y), 12, 0, Math.PI * 2);
-  ctx.fillStyle = '#ff4757';
-  ctx.fill();
-  ctx.fillStyle = '#fff';
-  ctx.font = 'bold 10px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('⚠', px(acc.x), py(acc.y));
-  ctx.fillStyle = 'rgba(255,255,255,0.8)';
-  ctx.font = 'bold 10px Inter';
-  ctx.fillText(acc.label, px(acc.x), py(acc.y) - 20);
+  }
 }
 
-function mapZoom(dir) {
-  mapScale = Math.max(0.5, Math.min(2, mapScale + dir * 0.2));
-}
-function mapCenter() {
-  mapOffsetX = 0; mapOffsetY = 0; mapScale = 1;
-}
+function drawMap() {} // Stubbed out for legacy canvas patches
+function mapCenter() { if(window.leafletMap) window.leafletMap.setView([INCIDENT.lat, INCIDENT.lng], 15); }
+function mapZoom(dir) { if(window.leafletMap) window.leafletMap.setZoom(window.leafletMap.getZoom() + dir); }
 
 // ============ INCIDENT LIST ============
 function renderIncidents() {
