@@ -968,37 +968,45 @@ function playSMSDemo() {
     };
   }
 // ════════════════════════════════════════════════════
-// AUDIO FEEDBACK ENGINE (Web Audio API)
+// AUDIO FEEDBACK ENGINE (Web Audio API — lazy init)
 // ════════════════════════════════════════════════════
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+let audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) {
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    } catch(e) { return null; }
+  }
+  return audioCtx;
+}
 
 function playSound(type) {
-  if (audioCtx.state === 'suspended') audioCtx.resume();
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  if (ctx.state === 'suspended') ctx.resume();
 
-  const now = audioCtx.currentTime;
+  const now = ctx.currentTime;
   if (type === 'ping') {
-    // Futuristic success ping
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(880, now); // A5
-    osc.frequency.exponentialRampToValueAtTime(1760, now + 0.1); // Up to A6
+    osc.frequency.setValueAtTime(880, now);
+    osc.frequency.exponentialRampToValueAtTime(1760, now + 0.1);
     gain.gain.setValueAtTime(0, now);
     gain.gain.linearRampToValueAtTime(0.3, now + 0.05);
     gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
-    osc.start(now);
-    osc.stop(now + 0.5);
+    osc.start(now); osc.stop(now + 0.5);
   } else if (type === 'pulse') {
-    // Deep UI tap/pulse
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
     osc.type = 'triangle';
     osc.frequency.setValueAtTime(220, now);
     osc.frequency.exponentialRampToValueAtTime(110, now + 0.2);
     gain.gain.setValueAtTime(0.5, now);
     gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-    osc.start(now);
-    osc.stop(now + 0.2);
+    osc.start(now); osc.stop(now + 0.2);
   }
 }
 
@@ -1092,8 +1100,8 @@ function callEmergency() {
 const _origSimNext = window.simNext;
 window.simNext = function() {
   if (typeof _origSimNext === 'function') _origSimNext();
-  // Step 5 = family notification step → send real browser notification
-  const step = window.simStep ?? 0;
+  // Use correct simCurrentStep variable (from app.js)
+  const step = window.simCurrentStep ?? 0;
   if (step === 4) {
     sendBrowserNotification(
       '🚨 GoodStop — Family Alert Sent',

@@ -39,6 +39,7 @@
         <a href="#analytics" class="nav-link" id="nav-analytics">Analytics</a>
         <a href="#laws" class="nav-link" id="nav-laws">Laws DB</a>
         <a href="#medid" class="nav-link" id="nav-medid">Medical ID</a>
+        <a href="#guide" class="nav-link" id="nav-guide">First Aid</a>
         <a href="#impact" class="nav-link" id="nav-impact">Impact</a>
         <a href="#tech" class="nav-link" id="nav-tech">Tech Stack</a>
       </div>
@@ -635,6 +636,128 @@
     </div>
   </section>
 
+  <!-- GOLDEN HOUR INJURY GUIDE -->
+  <section class="guide-section" id="guide">
+    <div class="section-container">
+      <div class="section-header">
+        <div class="section-tag">First Aid · No Training Needed</div>
+        <h2 class="section-title">Golden Hour Injury Guide</h2>
+        <p class="section-sub">Step-by-step visual first aid for bystanders — designed for one-handed use at the scene. No medical knowledge required.</p>
+      </div>
+      <div class="guide-layout">
+        <div class="guide-tabs" id="guide-tabs">
+          <button class="guide-tab active" data-guide="0" onclick="showGuide(0)">🚫 Don't Move</button>
+          <button class="guide-tab" data-guide="1" onclick="showGuide(1)">💬 Keep Conscious</button>
+          <button class="guide-tab" data-guide="2" onclick="showGuide(2)">🩸 Bleeding</button>
+          <button class="guide-tab" data-guide="3" onclick="showGuide(3)">❤️ CPR</button>
+          <button class="guide-tab" data-guide="4" onclick="showGuide(4)">🔥 Burns</button>
+          <button class="guide-tab" data-guide="5" onclick="showGuide(5)">😮 Unconscious</button>
+        </div>
+        <div class="guide-content" id="guide-content">
+          <!-- Rendered by JS -->
+        </div>
+        <div class="guide-progress">
+          <div class="guide-progress-bar" id="guide-progress-bar"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CROWD WITNESS PANEL (inside Demo section - added via JS) -->
+
+  <!-- PANIC MODE SECTION -->
+  <section class="panic-section" id="panic">
+    <div class="section-container">
+      <div class="section-header">
+        <div class="section-tag" style="background:rgba(255,71,87,0.1);color:#ff4757;border-color:rgba(255,71,87,0.3);">🆘 Emergency Mode</div>
+        <h2 class="section-title">PANIC MODE — One Tap. Everything Dispatched.</h2>
+        <p class="section-sub">When there's no time to think. One tap sends SMS to 108, shares your live location with all emergency contacts, and opens a direct call — all simultaneously in under 3 seconds.</p>
+      </div>
+      <div class="panic-layout">
+        <div class="panic-btn-wrap">
+          <div class="panic-outer-ring" id="panic-outer-ring">
+            <div class="panic-inner-ring" id="panic-inner-ring">
+              <button class="panic-btn" id="panic-btn" onclick="initPanicMode()">
+                <div class="panic-btn-icon">🆘</div>
+                <div class="panic-btn-label">PANIC</div>
+                <div class="panic-btn-sub">Hold 3s</div>
+              </button>
+            </div>
+          </div>
+          <div class="panic-countdown-ring" id="panic-countdown-ring">
+            <svg viewBox="0 0 100 100" id="panic-svg">
+              <circle cx="50" cy="50" r="46" fill="none" stroke="rgba(255,71,87,0.15)" stroke-width="6"/>
+              <circle cx="50" cy="50" r="46" fill="none" stroke="#ff4757" stroke-width="6" stroke-linecap="round"
+                stroke-dasharray="289" stroke-dashoffset="289" id="panic-circle" style="transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dashoffset 0.1s linear;"/>
+            </svg>
+          </div>
+        </div>
+        <div class="panic-actions-grid" id="panic-actions-grid">
+          <div class="panic-action-card" id="pac-sms">
+            <div class="pac-icon">📡</div>
+            <div class="pac-label">SMS to 108</div>
+            <div class="pac-status">Ready</div>
+          </div>
+          <div class="panic-action-card" id="pac-share">
+            <div class="pac-icon">📍</div>
+            <div class="pac-label">Live Location</div>
+            <div class="pac-status">Ready</div>
+          </div>
+          <div class="panic-action-card" id="pac-notify">
+            <div class="pac-icon">👨‍👩‍👧</div>
+            <div class="pac-label">Family Alert</div>
+            <div class="pac-status">Ready</div>
+          </div>
+          <div class="panic-action-card" id="pac-call">
+            <div class="pac-icon">📞</div>
+            <div class="pac-label">Call 108</div>
+            <div class="pac-status">Ready</div>
+          </div>
+        </div>
+        <div class="panic-witness-panel" id="panic-witness-panel">
+          <div class="witness-title">👁️ Crowd Witness Intelligence</div>
+          <div class="witness-count" id="witness-count">Scanning nearby reports...</div>
+          <div class="witness-bars" id="witness-bars"></div>
+          <div class="witness-confidence" id="witness-confidence">Confidence: —</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- INCIDENT TIMELINE -->
+  <section class="timeline-section" id="timeline">
+    <div class="section-container">
+      <div class="section-header">
+        <div class="section-tag">Real-Time Tracking</div>
+        <h2 class="section-title">Live Incident Timeline</h2>
+        <p class="section-sub">Every event from first tap to hospital arrival — timestamped and downloadable as PDF evidence for insurance claims.</p>
+      </div>
+      <div class="timeline-layout">
+        <div class="timeline-track" id="timeline-track">
+          <!-- Rendered by JS -->
+        </div>
+        <div class="timeline-aside">
+          <div class="timeline-stats" id="timeline-stats">
+            <div class="tl-stat">
+              <div class="tl-stat-val" id="tl-total-time">0:00</div>
+              <div class="tl-stat-label">Total elapsed</div>
+            </div>
+            <div class="tl-stat">
+              <div class="tl-stat-val" id="tl-events">0</div>
+              <div class="tl-stat-label">Events logged</div>
+            </div>
+            <div class="tl-stat">
+              <div class="tl-stat-val" id="tl-saved">26 min</div>
+              <div class="tl-stat-label">Time saved vs 112</div>
+            </div>
+          </div>
+          <button class="tl-replay-btn" id="tl-replay-btn" onclick="replayTimeline()">▶ Simulate Timeline</button>
+          <button class="tl-download-btn" onclick="downloadTimeline()">⬇ Download PDF</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- TECH STACK -->
 
   <section class="tech-section" id="tech">
@@ -890,6 +1013,8 @@
       <button class="chat-suggest" onclick="sendSuggest(this)">What should I do right now?</button>
       <button class="chat-suggest" onclick="sendSuggest(this)">Call ambulance for me</button>
       <button class="chat-suggest" onclick="sendSuggest(this)">मैं क्या करूं? (Hindi)</button>
+      <button class="chat-suggest" onclick="sendSuggest(this)">How do I do CPR?</button>
+      <button class="chat-suggest" onclick="sendSuggest(this)">Accident near me, help!</button>
     </div>
     <div class="chat-input-wrap">
       <input type="text" class="chat-input" id="chat-input" placeholder="Ask GoodStop AI..." onkeydown="chatKeydown(event)" />

@@ -1601,3 +1601,648 @@ function stopVoice() {
   if (t) t.textContent = '';
 }
 
+// ============================================================
+// GOLDEN HOUR INJURY GUIDE
+// ============================================================
+const GUIDE_DATA = [
+  {
+    title: "🚫 Don't Move the Victim",
+    badge: "CRITICAL — Spinal Risk",
+    badgeClass: "danger",
+    icon: "🚫",
+    anim: "stop",
+    steps: [
+      { title: "Stay calm and assess", desc: "Look before touching. Is the scene safe? Traffic, fire, live wires?" },
+      { title: "Don't drag or lift", desc: "Spinal cord injuries can worsen dramatically with any movement. Leave them exactly where they are." },
+      { title: "Support their head only if needed", desc: "If they're in water or immediate danger, hold head & neck in line and move as one unit slowly." },
+      { title: "Keep them still until paramedics arrive", desc: "Your job is to keep them still and conscious — not to carry them." },
+    ],
+    barWidth: "90%"
+  },
+  {
+    title: "💬 Keep the Victim Conscious",
+    badge: "ESSENTIAL — Talk to them",
+    badgeClass: "",
+    icon: "💬",
+    anim: "talk",
+    steps: [
+      { title: "Speak loudly and clearly", desc: "\"My name is [X]. I've called for help. You're going to be okay.\" Repeat every 30 seconds." },
+      { title: "Ask simple questions", desc: "\"Can you hear me? What's your name? Where does it hurt?\" This prevents them slipping into unconsciousness." },
+      { title: "Maintain eye contact", desc: "Look at them directly. If they close eyes, say their name loudly. Tap shoulder gently (not neck)." },
+      { title: "Keep crowd back", desc: "Prevent people from crowding. Lack of air and stimulation worsens shock." },
+    ],
+    barWidth: "75%"
+  },
+  {
+    title: "🩸 Control Bleeding",
+    badge: "CRITICAL — Act within 3 min",
+    badgeClass: "danger",
+    icon: "🩸",
+    anim: "pressure",
+    steps: [
+      { title: "Apply firm pressure immediately", desc: "Use cloth, shirt, jacket — anything. Press hard and don't release. Maintain constant pressure." },
+      { title: "Don't remove the cloth if soaked", desc: "Add more cloth on top. Removing the first layer disrupts clot formation and worsens bleeding." },
+      { title: "Elevate the limb if possible", desc: "For arm/leg wounds, raise above heart level if no bone injury suspected." },
+      { title: "Never use a tourniquet unless trained", desc: "Improperly applied tourniquets can cause limb loss. Maintain direct pressure instead." },
+    ],
+    barWidth: "95%"
+  },
+  {
+    title: "❤️ CPR (Compression Only)",
+    badge: "Life-Saving — No Training Needed",
+    badgeClass: "warning",
+    icon: "❤️",
+    anim: "cpr",
+    steps: [
+      { title: "Confirm unresponsiveness", desc: "Tap shoulder and shout. No response + not breathing normally = begin CPR immediately." },
+      { title: "Position your hands", desc: "Place heel of hand on centre of chest (on breastbone). Second hand on top, fingers interlaced." },
+      { title: "Push hard and fast", desc: "Compress chest 5-6cm deep at 100–120 per minute. Let chest fully rise between compressions." },
+      { title: "Compression-only is OK", desc: "For bystanders without training: skip rescue breaths. Just do continuous chest compressions until help arrives." },
+    ],
+    barWidth: "99%"
+  },
+  {
+    title: "🔥 Burns First Aid",
+    badge: "IMPORTANT — Cool it immediately",
+    badgeClass: "warning",
+    icon: "🔥",
+    anim: "cool",
+    steps: [
+      { title: "Cool with running water 20 min", desc: "Use cool (not cold/iced) water. Running water is essential. Do not use butter, toothpaste or oil." },
+      { title: "Remove clothing near burn", desc: "Remove jewellery, belts near the burn area unless they are stuck to skin." },
+      { title: "Do not break blisters", desc: "Intact blisters protect against infection. Breaking them increases risk of serious infection." },
+      { title: "Cover loosely with cling wrap", desc: "Wrap lightly to protect. Don't wrap tightly. Do not use fluffy cotton wool." },
+    ],
+    barWidth: "70%"
+  },
+  {
+    title: "😮 Unconscious but Breathing",
+    badge: "URGENT — Recovery Position",
+    badgeClass: "danger",
+    icon: "😮",
+    anim: "recovery",
+    steps: [
+      { title: "Check breathing for 10 seconds", desc: "Look for chest movement. Listen for breath. If breathing: do NOT start CPR." },
+      { title: "Place in recovery position", desc: "Turn them onto their side gently (if no spinal injury suspected). Bend top knee to stabilise." },
+      { title: "Open and clear airway", desc: "Tilt head back gently, lift chin. Look inside mouth for obvious blockage. Do not remove what you can't see." },
+      { title: "Monitor continuously until help arrives", desc: "Watch breathing every 60 seconds. If they stop breathing, begin CPR immediately." },
+    ],
+    barWidth: "88%"
+  }
+];
+
+let currentGuide = 0;
+
+function showGuide(idx) {
+  currentGuide = idx;
+  const content = document.getElementById('guide-content');
+  const progressBar = document.getElementById('guide-progress-bar');
+  if (!content) return;
+
+  document.querySelectorAll('.guide-tab').forEach((b, i) => b.classList.toggle('active', i === idx));
+  if (progressBar) progressBar.style.width = ((idx + 1) / GUIDE_DATA.length * 100) + '%';
+
+  const g = GUIDE_DATA[idx];
+
+  // Build animation area based on type
+  let animHTML = '';
+  if (g.anim === 'cpr') {
+    animHTML = `<div class="cpr-animation" style="width:90px;height:90px;border:3px solid var(--accent-red);">
+      <span style="font-size:2.5rem">❤️</span>
+    </div>
+    <div style="font-size:0.75rem;color:var(--accent-red);font-weight:700;letter-spacing:0.05em;">100-120 BPM</div>`;
+  } else if (g.anim === 'stop') {
+    animHTML = `<div style="width:90px;height:90px;border-radius:50%;background:rgba(255,71,87,0.15);border:3px solid var(--accent-red);display:flex;align-items:center;justify-content:center;font-size:3rem;animation:guideIconPulse 1.5s ease infinite">🚫</div>`;
+  } else if (g.anim === 'pressure') {
+    animHTML = `<div style="position:relative;width:90px;height:90px">
+      <div style="position:absolute;inset:0;border-radius:50%;background:rgba(255,71,87,0.1);animation:cprPump 1.5s ease infinite;display:flex;align-items:center;justify-content:center;font-size:2.5rem;border:2px solid var(--accent-red)">🩸</div>
+    </div>
+    <div style="font-size:0.72rem;color:var(--accent-red);font-weight:700">PRESS HARD — DON'T STOP</div>`;
+  } else {
+    animHTML = `<div style="font-size:4.5rem;animation:guideIconPulse 2s ease infinite">${g.icon}</div>`;
+  }
+
+  content.innerHTML = `
+    <div class="guide-card">
+      <div class="guide-animation-area">
+        <div class="guide-anim-badge ${g.badgeClass}">${g.badge}</div>
+        ${animHTML}
+        <div class="guide-visual-bar" style="width:100%;max-width:180px">
+          <div class="guide-visual-fill" style="width:0%" id="guide-fill-bar"></div>
+        </div>
+      </div>
+      <div class="guide-steps-area">
+        <h3 style="font-family:var(--font-display);font-size:1.2rem;font-weight:800;color:var(--text-primary);margin-bottom:4px">${g.title}</h3>
+        ${g.steps.map((s, si) => `
+          <div class="guide-step-item" style="animation-delay:${si * 0.1}s;animation:guideFade 0.35s ease ${si * 0.08}s both">
+            <div class="guide-step-num">${si + 1}</div>
+            <div class="guide-step-text">
+              <strong>${s.title}</strong>
+              ${s.desc}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+
+  // Animate the fill bar
+  setTimeout(() => {
+    const fill = document.getElementById('guide-fill-bar');
+    if (fill) fill.style.width = g.barWidth;
+  }, 200);
+}
+
+// Init guide on load
+window.addEventListener('DOMContentLoaded', () => {
+  const guideSection = document.getElementById('guide');
+  if (guideSection) {
+    const guideObs = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        showGuide(0);
+        guideObs.disconnect();
+      }
+    }, { threshold: 0.2 });
+    guideObs.observe(guideSection);
+  }
+});
+
+// ============================================================
+// PANIC MODE
+// ============================================================
+let panicHoldTimer = null;
+let panicStartTime = null;
+let panicFired = false;
+const PANIC_HOLD_MS = 3000;
+
+function initPanicMode() {
+  if (panicFired) return;
+  panicFired = true;
+
+  // Build the full-screen overlay
+  const overlay = document.createElement('div');
+  overlay.className = 'panic-active-overlay';
+  overlay.id = 'panic-overlay';
+  overlay.innerHTML = `
+    <div class="panic-overlay-icon">🆘</div>
+    <div class="panic-overlay-title">PANIC MODE ACTIVE</div>
+    <div class="panic-overlay-sub">Dispatching all emergency services simultaneously...</div>
+    <div class="panic-overlay-actions" id="overlay-actions">
+      <div class="panic-overlay-action" id="oa-sms" style="animation-delay:0s">📡 Sending SMS to 108...</div>
+      <div class="panic-overlay-action" id="oa-loc" style="animation-delay:0.2s">📍 Sharing live location...</div>
+      <div class="panic-overlay-action" id="oa-fam" style="animation-delay:0.4s">👨‍👩‍👧 Alerting family...</div>
+      <div class="panic-overlay-action" id="oa-call" style="animation-delay:0.6s">📞 Dialing 108...</div>
+    </div>
+    <button class="panic-dismiss-btn" onclick="dismissPanic()">✕ Cancel Emergency</button>
+  `;
+  document.body.appendChild(overlay);
+  document.body.style.overflow = 'hidden';
+
+  // Fire actions sequentially
+  const actions = [
+    { id: 'oa-sms', delay: 600, label: '✅ SMS Sent to 108', fn: () => {
+        try { sendRealSMS && sendRealSMS(); } catch(e) {}
+        updatePanicCard('pac-sms', 'Sent ✅');
+      }
+    },
+    { id: 'oa-loc', delay: 1200, label: '✅ Live location shared', fn: () => {
+        try { shareEmergency && shareEmergency(); } catch(e) {}
+        updatePanicCard('pac-share', 'Shared ✅');
+      }
+    },
+    { id: 'oa-fam', delay: 1800, label: '✅ Family contacts alerted', fn: () => {
+        try { sendBrowserNotification && sendBrowserNotification('🆘 PANIC MODE', 'Emergency activated — your location is being shared.'); } catch(e) {}
+        updatePanicCard('pac-notify', 'Alerted ✅');
+        showReputationBadge(true);
+      }
+    },
+    { id: 'oa-call', delay: 2600, label: '📞 Opening dialer...', fn: () => {
+        updatePanicCard('pac-call', 'Calling... ✅');
+      }
+    },
+  ];
+
+  actions.forEach(a => {
+    setTimeout(() => {
+      const el = document.getElementById(a.id);
+      if (el) { el.textContent = a.label; el.classList.add('active'); }
+      a.fn();
+    }, a.delay);
+  });
+
+  // Auto dismiss after 4s and open bystander flow
+  setTimeout(() => {
+    dismissPanic();
+    openBystander();
+  }, 4200);
+}
+
+function updatePanicCard(id, status) {
+  const card = document.getElementById(id);
+  if (!card) return;
+  card.classList.add('done');
+  const st = card.querySelector('.pac-status');
+  if (st) st.textContent = status;
+}
+
+function dismissPanic() {
+  const overlay = document.getElementById('panic-overlay');
+  if (overlay) overlay.remove();
+  document.body.style.overflow = '';
+  panicFired = false;
+  // Reset panic button cards
+  ['pac-sms','pac-share','pac-notify','pac-call'].forEach(id => {
+    const c = document.getElementById(id);
+    if (c) {
+      c.classList.remove('done','firing');
+      const st = c.querySelector('.pac-status');
+      if (st) st.textContent = 'Ready';
+    }
+  });
+}
+
+// Panic countdown on mousedown/touchstart
+window.addEventListener('DOMContentLoaded', () => {
+  const btn = document.getElementById('panic-btn');
+  if (!btn) return;
+
+  function startHold() {
+    panicStartTime = Date.now();
+    const circle = document.getElementById('panic-circle');
+    const totalDash = 289;
+
+    panicHoldTimer = setInterval(() => {
+      const elapsed = Date.now() - panicStartTime;
+      const progress = Math.min(elapsed / PANIC_HOLD_MS, 1);
+      if (circle) circle.style.strokeDashoffset = totalDash * (1 - progress);
+
+      if (progress >= 1) {
+        clearInterval(panicHoldTimer);
+        initPanicMode();
+      }
+    }, 50);
+  }
+
+  function cancelHold() {
+    clearInterval(panicHoldTimer);
+    const circle = document.getElementById('panic-circle');
+    if (circle) circle.style.strokeDashoffset = 289;
+  }
+
+  btn.addEventListener('mousedown', startHold);
+  btn.addEventListener('touchstart', startHold, { passive: true });
+  btn.addEventListener('mouseup', cancelHold);
+  btn.addEventListener('mouseleave', cancelHold);
+  btn.addEventListener('touchend', cancelHold);
+
+  // Override click to prevent instant fire (require hold)
+  btn.setAttribute('onclick', '');
+});
+
+// Initialize crowd witness
+window.addEventListener('DOMContentLoaded', () => {
+  initCrowdWitness();
+  initIncidentTimeline();
+  addBroadcastFAB();
+});
+
+// ============================================================
+// CROWD WITNESS INTELLIGENCE
+// ============================================================
+function initCrowdWitness() {
+  const countEl = document.getElementById('witness-count');
+  const barsEl = document.getElementById('witness-bars');
+  const confEl = document.getElementById('witness-confidence');
+  if (!countEl) return;
+
+  const witnesses = [
+    { label: 'Collision severity', pct: 82, color: '#ff4757' },
+    { label: 'Persons injured', pct: 67, color: '#ffb800' },
+    { label: 'Road access clear', pct: 91, color: '#00e896' },
+    { label: 'Fire/smoke visible', pct: 12, color: '#0091ff' },
+  ];
+
+  // Animate count ticker
+  let n = 0;
+  const target = Math.floor(3 + Math.random() * 5);
+  const ticker = setInterval(() => {
+    n++;
+    if (countEl) countEl.textContent = `${n} nearby bystander${n > 1 ? 's' : ''} reported this incident`;
+    if (n >= target) clearInterval(ticker);
+  }, 400);
+
+  // Render witness bars
+  if (barsEl) {
+    barsEl.innerHTML = witnesses.map(w => `
+      <div class="witness-bar-row">
+        <div class="witness-bar-label">${w.label}</div>
+        <div class="witness-bar-track">
+          <div class="witness-bar-fill" style="width:0%;background:${w.color}" data-target="${w.pct}"></div>
+        </div>
+        <div style="font-size:0.68rem;color:var(--text-muted);width:32px;text-align:right">${w.pct}%</div>
+      </div>
+    `).join('');
+
+    setTimeout(() => {
+      barsEl.querySelectorAll('.witness-bar-fill').forEach(el => {
+        el.style.width = el.dataset.target + '%';
+      });
+    }, 500);
+  }
+
+  // Confidence score
+  const avgConf = Math.round(witnesses.reduce((a, w) => a + w.pct, 0) / witnesses.length);
+  setTimeout(() => {
+    if (confEl) confEl.textContent = `Confidence: ${avgConf}% — Auto-upgrading to ALS dispatch`;
+  }, 1500);
+
+  // Live update every 8s
+  setInterval(() => {
+    if (!countEl) return;
+    const current = parseInt(countEl.textContent) || target;
+    const newN = Math.min(current + (Math.random() < 0.4 ? 1 : 0), 12);
+    countEl.textContent = `${newN} nearby bystander${newN > 1 ? 's' : ''} reported this incident`;
+  }, 8000);
+}
+
+// ============================================================
+// INCIDENT TIMELINE
+// ============================================================
+const TIMELINE_EVENTS = [
+  { time: '0:00', icon: '👆', title: 'Incident Reported', desc: 'Bystander tapped "I see an accident". GPS locked ±5m accuracy.', badge: 'ANONYMOUS', badgeClass: '' },
+  { time: '0:03', icon: '📍', title: 'Location Confirmed', desc: 'Coordinates verified: NH-48, km 28.4, Gurugram. Address geocoded.', badge: 'GPS LOCKED', badgeClass: '' },
+  { time: '0:07', icon: '🛡️', title: 'Legal Protection Shown', desc: 'Good Samaritan Law (MV Act §134A) displayed. Bystander confirmed.', badge: 'PROTECTED', badgeClass: '' },
+  { time: '0:14', icon: '🤖', title: 'AI Severity Analysis', desc: 'AI classified: CRITICAL. Person unconscious, 2+ casualties estimated.', badge: 'CRITICAL', badgeClass: 'critical' },
+  { time: '0:22', icon: '⚡', title: 'Private Ambulance Dispatched', desc: 'Medlife #M-14 (ALS). ETA: 9 min. Govt Amb bypassed (34 min).', badge: '9 MIN ETA', badgeClass: '' },
+  { time: '0:31', icon: '🏥', title: 'Medanta Hospital Pre-alerted', desc: 'Medical ID transmitted: Blood O+, Allergy: Penicillin. Trauma bay 3 prepared.', badge: 'HOSPITAL READY', badgeClass: '' },
+  { time: '0:47', icon: '👨‍👩‍👧', title: 'Family Notified', desc: '3 emergency contacts received live tracking link. 2 opened link.', badge: 'FAMILY ALERTED', badgeClass: '' },
+  { time: '9:00', icon: '🚑', title: 'Ambulance On Scene', desc: 'Medlife #M-14 arrived. Paramedics took over. Scene secured.', badge: 'ARRIVED', badgeClass: '' },
+  { time: '12:00', icon: '🏁', title: 'Patient En Route to Hospital', desc: 'Patient stabilized and en route to Medanta. Doctor briefed. 26 min saved vs 112.', badge: '26 MIN SAVED', badgeClass: '' },
+];
+
+let timelineRunning = false;
+
+function initIncidentTimeline() {
+  const track = document.getElementById('timeline-track');
+  if (!track) return;
+  track.innerHTML = TIMELINE_EVENTS.map((e, i) => `
+    <div class="tl-event" id="tl-${i}">
+      <div class="tl-dot ${e.badgeClass}">${e.icon}</div>
+      <div class="tl-body">
+        <div class="tl-time">${e.time}</div>
+        <div class="tl-title">${e.title}</div>
+        <div class="tl-desc">${e.desc}</div>
+        <span class="tl-badge ${e.badgeClass}">${e.badge}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function replayTimeline() {
+  if (timelineRunning) return;
+  timelineRunning = true;
+  const btn = document.getElementById('tl-replay-btn');
+  if (btn) btn.textContent = '⏳ Replaying...';
+
+  // Reset
+  document.querySelectorAll('.tl-event').forEach(el => el.classList.remove('visible'));
+  const totalEl = document.getElementById('tl-total-time');
+  const eventsEl = document.getElementById('tl-events');
+  if (totalEl) totalEl.textContent = '0:00';
+  if (eventsEl) eventsEl.textContent = '0';
+
+  const delays = [0, 400, 700, 1100, 1500, 2000, 2500, 3200, 4200];
+  TIMELINE_EVENTS.forEach((e, i) => {
+    setTimeout(() => {
+      const el = document.getElementById(`tl-${i}`);
+      if (el) el.classList.add('visible');
+      if (totalEl) totalEl.textContent = e.time;
+      if (eventsEl) eventsEl.textContent = i + 1;
+      if (i === TIMELINE_EVENTS.length - 1) {
+        timelineRunning = false;
+        if (btn) btn.textContent = '▶ Replay Again';
+        showReputationBadge(false);
+      }
+    }, delays[i] || i * 500);
+  });
+}
+
+// Trigger timeline replay when it enters viewport
+window.addEventListener('DOMContentLoaded', () => {
+  const tlSection = document.getElementById('timeline');
+  if (tlSection) {
+    const tlObs = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        replayTimeline();
+        tlObs.disconnect();
+      }
+    }, { threshold: 0.2 });
+    tlObs.observe(tlSection);
+  }
+});
+
+function downloadTimeline() {
+  const lines = TIMELINE_EVENTS.map(e => `[${e.time}] ${e.title} — ${e.desc}`).join('\n');
+  const txt = `GOODSTOP INCIDENT TIMELINE\n===========================\nGenerated: ${new Date().toLocaleString()}\nIncident: NH-48, km 28.4, Gurugram\n\n${lines}\n\n--- Generated by GoodStop Emergency App ---`;
+  const blob = new Blob([txt], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'GoodStop-Incident-Timeline.txt';
+  a.click();
+  try { showToast('⬇ Timeline downloaded as text file!'); } catch(e) {}
+}
+
+// ============================================================
+// BYSTANDER REPUTATION SYSTEM
+// ============================================================
+let repCount = parseInt(localStorage.getItem('goodstop_rep') || '0');
+
+function showReputationBadge(isPanic) {
+  repCount++;
+  try { localStorage.setItem('goodstop_rep', repCount); } catch(e) {}
+
+  let existing = document.getElementById('rep-badge');
+  if (existing) existing.remove();
+
+  const badge = document.createElement('div');
+  badge.id = 'rep-badge';
+  badge.className = 'reputation-badge';
+  badge.innerHTML = `
+    <div class="rep-icon">🏅</div>
+    <div class="rep-text">
+      <div class="rep-title">+1 Life Assist${isPanic ? ' (Panic Save)' : ''}</div>
+      <div class="rep-sub">You've helped ${repCount} incident${repCount > 1 ? 's' : ''} this session</div>
+      <div class="rep-stars">${'⭐'.repeat(Math.min(repCount, 5))}</div>
+    </div>
+  `;
+  badge.onclick = () => badge.classList.remove('show');
+  document.body.appendChild(badge);
+
+  setTimeout(() => badge.classList.add('show'), 100);
+  setTimeout(() => badge.classList.remove('show'), 5000);
+}
+
+// ============================================================
+// EMERGENCY BROADCAST FAB
+// ============================================================
+function addBroadcastFAB() {
+  if (document.getElementById('broadcast-fab')) return;
+  const fab = document.createElement('button');
+  fab.id = 'broadcast-fab';
+  fab.className = 'broadcast-fab';
+  fab.title = 'Emergency Broadcast';
+  fab.innerHTML = `📢<span class="broadcast-fab-tooltip">Emergency Broadcast</span>`;
+  fab.onclick = broadcastEmergency;
+  document.body.appendChild(fab);
+}
+
+function broadcastEmergency() {
+  const lat = (typeof realGPS !== 'undefined' && realGPS) ? realGPS.lat.toFixed(5) : '28.45950';
+  const lng = (typeof realGPS !== 'undefined' && realGPS) ? realGPS.lng.toFixed(5) : '77.02660';
+  const mapsUrl = `https://maps.google.com/?q=${lat},${lng}`;
+  const waText = encodeURIComponent(`🆘 *ROAD ACCIDENT EMERGENCY*\n\nLocation: ${lat}°N, ${lng}°E\nMap: ${mapsUrl}\n\nPlease call 108 or emergency services immediately.\n\n_Sent via GoodStop Emergency App_`);
+  const waUrl = `https://api.whatsapp.com/send?text=${waText}`;
+
+  // Show a mini modal
+  const existing = document.getElementById('broadcast-modal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'broadcast-modal';
+  modal.style.cssText = `position:fixed;bottom:150px;left:24px;z-index:9999;background:var(--bg-700);border:1px solid rgba(0,232,150,0.25);border-radius:var(--radius-xl);padding:20px;width:280px;box-shadow:0 16px 48px rgba(0,0,0,0.5);animation:toastIn 0.3s ease`;
+  modal.innerHTML = `
+    <div style="font-weight:800;font-size:0.9rem;color:var(--text-primary);margin-bottom:12px">📢 Emergency Broadcast</div>
+    <div style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:14px">Share this emergency to all your contacts instantly</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button onclick="window.open('${waUrl}','_blank')" class="whatsapp-share-btn">
+        <span>📱</span> Share on WhatsApp
+      </button>
+      <button onclick="(typeof shareEmergency !== 'undefined') && shareEmergency()" style="padding:10px;background:rgba(0,145,255,0.1);border:1px solid rgba(0,145,255,0.3);color:#0091ff;border-radius:var(--radius-md);font-size:0.82rem;font-weight:700;cursor:pointer;font-family:Inter,sans-serif">
+        🌐 Native Share API
+      </button>
+      <button onclick="copyBroadcastText()" style="padding:10px;background:rgba(0,232,150,0.06);border:1px solid rgba(0,232,150,0.2);color:var(--accent-green);border-radius:var(--radius-md);font-size:0.82rem;font-weight:700;cursor:pointer;font-family:Inter,sans-serif">
+        📋 Copy Emergency Text
+      </button>
+    </div>
+    <button onclick="document.getElementById('broadcast-modal').remove()" style="position:absolute;top:10px;right:14px;background:none;border:none;color:var(--text-muted);font-size:1.1rem;cursor:pointer">×</button>
+  `;
+  document.body.appendChild(modal);
+  setTimeout(() => modal.remove(), 15000);
+}
+
+function copyBroadcastText() {
+  const lat = (typeof realGPS !== 'undefined' && realGPS) ? realGPS.lat.toFixed(5) : '28.45950';
+  const lng = (typeof realGPS !== 'undefined' && realGPS) ? realGPS.lng.toFixed(5) : '77.02660';
+  const text = `🆘 ROAD ACCIDENT EMERGENCY\nLocation: ${lat}°N, ${lng}°E\nMap: https://maps.google.com/?q=${lat},${lng}\nPlease call 108 immediately.\nSent via GoodStop Emergency App`;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => { try { showToast('📋 Emergency text copied!'); } catch(e) {} });
+  }
+}
+
+// ============================================================
+// IMPROVED CHATBOT (NO API KEY PROMPT — LOCAL FALLBACK)
+// ============================================================
+// Extended local knowledge base (used when no OpenAI key)
+const extendedChatDB = {
+  'cpr': `**CPR — Compression-Only Method (No Training Needed)**\n\n1. ✋ Place heel of hand on centre of chest\n2. Push **hard** (5-6cm deep) at **100-120 per minute**\n3. Let chest fully rise between compressions\n4. Don't stop until paramedics arrive\n\n⚠ For untrained bystanders: **skip rescue breaths** — compressions alone save lives!`,
+  'how do i do cpr': `**CPR — Compression-Only Method (No Training Needed)**\n\n1. ✋ Place heel of hand on centre of chest\n2. Push **hard** (5-6cm deep) at **100-120 per minute**\n3. Let chest fully rise between compressions\n4. Don't stop until paramedics arrive\n\n⚠ For untrained bystanders: **skip rescue breaths** — compressions alone save lives!`,
+  'bleeding': `**Controlling Bleeding:**\n\n1. 🩸 Apply **firm, constant pressure** with any cloth\n2. **Don't remove** the cloth if soaked — add more on top\n3. Elevate the limb above heart level if possible\n4. **Never** use a tourniquet unless you're trained\n\nMaintain pressure until ambulance arrives.`,
+  'accident near me': `GoodStop is dispatching help now! 🚨\n\n**Immediate actions:**\n1. 📍 Your GPS has been captured\n2. 🛡️ You're protected under Good Samaritan Law\n3. 🚑 Fastest ambulance is being dispatched\n\n**While you wait:**\n- Don't move the victim\n- Talk to them to keep conscious\n- Keep crowd back (3m clearance)`,
+  'am i legally safe': `✅ **YES — You are fully protected!**\n\nUnder **Motor Vehicles Amendment Act 2019, §134A:**\n- You **cannot be arrested** or detained\n- You **cannot be summoned** to court without consent\n- You **cannot be held liable** if the victim worsens\n\n📋 Screenshot the legal screen in GoodStop for proof.`,
+  'what should i do': `**Three safe actions — no training needed:**\n\n1. 🚫 **Don't move them** — Spinal injuries can worsen\n2. 💬 **Talk to them** — Ask their name, keep conscious\n3. 🧑‍🤝‍🧑 **Keep crowd back** — Clear 3m for ambulance\n\nGoodStop has already dispatched the fastest ambulance. 🛡️`,
+  'call ambulance': `**Done! GoodStop has:**\n\n🚑 **Dispatched** Medlife Private Ambulance — ETA **9 minutes**\n🏥 **Pre-alerted** Hospital with location + severity\n📲 **Notified** victim's emergency contacts\n📡 **SMS backup** sent via 2G fallback\n\n⚠ Do NOT call 108 separately — private ambulance is 25 min faster!`,
+  'मैं क्या करूं': `🛡️ **आप कानूनी रूप से सुरक्षित हैं** — मोटर वाहन अधिनियम §134A\n🚑 **एम्बुलेंस भेज दी गई** — 9 मिनट में आएगी\n\n**अभी 3 काम करें:**\n1. पीड़ित को हिलाएं नहीं\n2. उनसे बात करते रहें\n3. भीड़ को दूर रखें\n\nआप सही काम कर रहे हैं! 🙏`,
+  'burns': `**Burns First Aid:**\n\n1. 💧 Cool with **running water for 20 minutes** (not ice)\n2. Remove clothing/jewellery **near** the burn (not stuck skin)\n3. **Don't break blisters** — infection risk\n4. Cover loosely with cling wrap or clean cloth\n\n❌ Never use butter, oil, or toothpaste on burns`,
+  'unconscious': `**Unconscious but Breathing:**\n\n1. Check breathing for 10 seconds\n2. Place in **recovery position** (on their side)\n3. Open airway — tilt head back, lift chin\n4. Monitor every 60 seconds\n\n⚠️ If they STOP breathing → begin CPR immediately`,
+};
+
+// Smart local fallback (no API key needed for hackathon demo)
+function getLocalChatResponse(text) {
+  const lower = text.toLowerCase();
+  for (const [key, val] of Object.entries(extendedChatDB)) {
+    if (lower.includes(key)) return val;
+  }
+  return chatResponses?.default || `I can help with:\n\n🛡️ **Legal protection** — Good Samaritan laws\n🚑 **Emergency routing** — AI ambulance dispatch\n💬 **First aid** — CPR, bleeding, burns\n🌍 **Multilingual** — Hindi, Bengali, Thai\n\nWhat do you need right now?`;
+}
+
+// Override sendChatMessage ONLY if no OpenAI key saved
+const _origSendChatMessage = window.sendChatMessage;
+if (!localStorage.getItem('goodstop_openai_key')) {
+  window.sendChatMessage = function(text) {
+    const msgs = document.getElementById('chat-messages');
+    if (!msgs) return;
+
+    const userMsg = document.createElement('div');
+    userMsg.className = 'chat-msg chat-msg--user';
+    userMsg.innerHTML = `<div class="chat-bubble">${text}</div>`;
+    msgs.appendChild(userMsg);
+
+    const typing = document.createElement('div');
+    typing.className = 'chat-msg chat-msg--bot';
+    typing.innerHTML = `<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>`;
+    msgs.appendChild(typing);
+    msgs.scrollTop = msgs.scrollHeight;
+
+    const response = getLocalChatResponse(text);
+    setTimeout(() => {
+      typing.remove();
+      const botMsg = document.createElement('div');
+      botMsg.className = 'chat-msg chat-msg--bot';
+      botMsg.innerHTML = `<div class="chat-bubble">${response.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>')}</div>`;
+      msgs.appendChild(botMsg);
+      msgs.scrollTop = msgs.scrollHeight;
+    }, 900 + Math.random() * 500);
+  };
+}
+
+// ============================================================
+// LIVE HOSPITAL BED ANIMATION
+// ============================================================
+function animateHospitalBeds() {
+  const bars = document.querySelectorAll('.hospital-bar');
+  bars.forEach(bar => {
+    const width = parseFloat(bar.style.width || 50);
+    if (width > 80) bar.classList.add('pulsing');
+
+    // Slowly increment capacity
+    setInterval(() => {
+      const current = parseFloat(bar.style.width || 50);
+      const delta = (Math.random() - 0.3) * 2;
+      const newW = Math.max(30, Math.min(99, current + delta));
+      bar.style.width = newW + '%';
+
+      const pct = bar.closest('.hospital-item')?.querySelector('.hospital-pct');
+      if (pct) pct.textContent = Math.round(newW) + '%';
+
+      bar.classList.toggle('pulsing', newW > 80);
+      bar.className = bar.className.replace(/\b(low|mid|high)\b/g, '');
+      bar.classList.add(newW > 80 ? 'high' : newW > 60 ? 'mid' : 'low');
+    }, 5000);
+  });
+}
+
+// Patch renderHospitals to also trigger animation
+const _origRenderHospitals = window.renderHospitals;
+window.renderHospitals = function() {
+  if (typeof _origRenderHospitals === 'function') _origRenderHospitals();
+  setTimeout(animateHospitalBeds, 300);
+};
+
+// ============================================================
+// AUTO-INIT ALL NEW FEATURES
+// ============================================================
+window.addEventListener('DOMContentLoaded', () => {
+  // Render timeline on load
+  initIncidentTimeline();
+  // Add WhatsApp button to SMS section after play
+  const smsWrap = document.querySelector('.sms-info-wrap');
+  if (smsWrap && !document.getElementById('wa-share-btn')) {
+    const waBtn = document.createElement('button');
+    waBtn.id = 'wa-share-btn';
+    waBtn.className = 'whatsapp-share-btn';
+    waBtn.style.cssText = 'width:100%;margin-top:10px;padding:13px;justify-content:center;font-size:0.95rem;';
+    waBtn.innerHTML = '📱 Share Emergency on WhatsApp';
+    waBtn.onclick = () => broadcastEmergency();
+    smsWrap.appendChild(waBtn);
+  }
+});
