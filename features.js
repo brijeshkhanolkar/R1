@@ -1436,3 +1436,113 @@ window.sendChatMessage = async function(text) {
   
   msgs.scrollTop = msgs.scrollHeight;
 };
+
+
+
+// ════════════════════════════════════════════════════
+// LIVE AI COMPUTER VISION (TensorFlow.js COCO-SSD)
+// ════════════════════════════════════════════════════
+let cocoModel = null;
+let aiCamStream = null;
+let aiVideo = null;
+let aiCanvas = null;
+let aiCtx = null;
+let detectionLoop = null;
+
+window.startAICamera = async function() {
+  const btn = document.getElementById('start-cam-btn');
+  aiVideo = document.getElementById('ai-camera-video');
+  aiCanvas = document.getElementById('ai-camera-canvas');
+  const overlay = document.getElementById('ai-camera-overlay');
+  
+  if (!aiVideo || !aiCanvas) return;
+  
+  aiCtx = aiCanvas.getContext('2d');
+  if (btn) btn.style.display = 'none';
+  if (overlay) overlay.style.display = 'block';
+  aiVideo.style.display = 'block';
+  aiCanvas.style.display = 'block';
+
+  try {
+    aiCamStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    aiVideo.srcObject = aiCamStream;
+    
+    // Load Model
+    showToast('🤖 Loading YOLO/COCO-SSD Neural Network...', 3000);
+    if (window.cocoSsd) {
+      cocoModel = await cocoSsd.load();
+      showToast('✅ AI Model Loaded. Scanning for accidents...', 3000);
+      
+      aiVideo.onloadedmetadata = () => {
+        aiCanvas.width = aiVideo.videoWidth || aiVideo.clientWidth;
+        aiCanvas.height = aiVideo.videoHeight || aiVideo.clientHeight;
+        detectFrame();
+      };
+    } else {
+      showToast('❌ TensorFlow.js not loaded. Check internet connection.', 4000);
+    }
+  } catch (err) {
+    console.error('Camera err:', err);
+    showToast('❌ Camera permission denied or not available.', 4000);
+  }
+};
+
+async function detectFrame() {
+  if (!cocoModel || !aiVideo) return;
+  
+  // Predict objects in current frame
+  const predictions = await cocoModel.detect(aiVideo);
+  
+  // Clear previous drawings
+  aiCtx.clearRect(0, 0, aiCanvas.width, aiCanvas.height);
+  
+  let vehiclesCount = 0;
+  let personCount = 0;
+  
+  // Draw bounding boxes
+  predictions.forEach(prediction => {
+    const [x, y, width, height] = prediction.bbox;
+    const label = prediction.class;
+    const conf = Math.round(prediction.score * 100);
+    
+    // Filter for accident-relevant objects
+    const isVehicle = ['car', 'truck', 'bus', 'motorcycle'].includes(label);
+    const isPerson = label === 'person';
+    
+    if (isVehicle) vehiclesCount++;
+    if (isPerson) personCount++;
+    
+    if (isVehicle || isPerson) {
+      const color = isPerson ? '#ff4757' : '#00e896';
+      
+      // Draw Box
+      aiCtx.strokeStyle = color;
+      aiCtx.lineWidth = 3;
+      aiCtx.strokeRect(x, y, width, height);
+      
+      // Draw Label
+      aiCtx.fillStyle = color;
+      aiCtx.fillRect(x, y - 24, aiCtx.measureText(label).width + 50, 24);
+      aiCtx.fillStyle = '#000';
+      aiCtx.font = 'bold 16px Inter, sans-serif';
+      aiCtx.fillText(`${label.toUpperCase()} ${conf}%`, x + 5, y - 6);
+    }
+  });
+  
+  // Accident Logic Trigger
+  const overlayText = document.querySelector('#ai-camera-overlay div:last-child');
+  if (vehiclesCount >= 2 || (vehiclesCount >= 1 && personCount >= 1)) {
+    if (overlayText) overlayText.innerHTML = `<span style="color:#ff4757">🚨 CRITICAL SEVERITY DETECTED</span>`;
+    if (window.gaugeTarget !== undefined) window.gaugeTarget = 85;
+    const gaugeSub = document.getElementById('severity-gauge-sub');
+    if (gaugeSub) gaugeSub.textContent = 'High Impact Crash Detected';
+  } else if (vehiclesCount === 1) {
+    if (overlayText) overlayText.innerHTML = `<span style="color:#ffa502">⚠️ VEHICLE DETECTED - MONITORING</span>`;
+    if (window.gaugeTarget !== undefined && window.gaugeTarget < 40) window.gaugeTarget = 40;
+  } else {
+    if (overlayText) overlayText.innerHTML = `[ ANALYZING FRAMES ]`;
+  }
+  
+  // Call recursively
+  detectionLoop = requestAnimationFrame(detectFrame);
+}
