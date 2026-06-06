@@ -177,6 +177,7 @@ function initMap() {
     zoomControl: false,
     attributionControl: true
   });
+  window.leafletMap = leafletMap;
 
   // Dark map tiles — CartoDB Dark Matter (free, no API key)
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
@@ -232,12 +233,13 @@ function initMap() {
   }).addTo(leafletMap);
 
   // Known hospitals
-  HOSPITALS.forEach(h => {
-    L.marker([h.lat, h.lng], { icon: makeHospIcon(h.cap) })
+  const hospList = window.HOSPITALS || HOSPITALS;
+  hospList.forEach(h => {
+    L.marker([h.lat, h.lng], { icon: makeHospIcon(h.cap || 50) })
       .addTo(leafletMap)
       .bindPopup(`
         <div><strong>🏥 ${h.name}</strong><br/>
-        ICU Capacity: <strong>${h.cap}%</strong><br/>
+        ICU Capacity: <strong>${h.cap || 50}%</strong><br/>
         <small>Trauma care · Pre-alert available</small></div>
       `);
   });
