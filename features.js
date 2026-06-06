@@ -102,10 +102,44 @@ function initRealGeolocation() {
       }
       initMap();
       
-      // Fetch dynamic hospitals based on real GPS
-      searchNearbyHospitals(realGPS.lat, realGPS.lng);
-      
+
+      // 1. Reverse Geocoding (Nominatim)
+      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${realGPS.lat}&lon=${realGPS.lng}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.display_name) {
+            INCIDENT.label = data.address.road || data.address.suburb || 'Your Location';
+            const parts = data.display_name.split(',');
+            const shortAddress = parts.slice(0, 3).join(',');
+            showToast(`📍 Location locked: ${shortAddress}`, 3500);
+            
+            // Update UI elements showing hardcoded "NH-48"
+            const dsLabel = document.getElementById('stat1');
+            if(dsLabel) dsLabel.textContent = shortAddress;
+          }
+        }).catch(e => console.log('Geocoding error', e));
+
+      // 2. Fetch Real Nearby Hospitals (Overpass API)
+      showToast('🏥 Finding nearby hospitals via OpenStreetMap...', 2000);
+      const query = `[out:json];node["amenity"="hospital"](around:5000,${realGPS.lat},${realGPS.lng});out 5;`;
+      fetch('https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(query))
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.elements && data.elements.length > 0) {
+            window.HOSPITALS = data.elements.map(e => ({
+              lat: e.lat,
+              lng: e.lon,
+              name: e.tags.name || 'Local Hospital',
+              cap: Math.floor(Math.random() * 60) + 20 // Simulate capacity
+            }));
+            if (typeof renderHospitals === 'function') renderHospitals();
+            if (typeof initMap === 'function') initMap(); // Redraw map with real hospitals
+            showToast(`🏥 Found ${window.HOSPITALS.length} real hospitals nearby`, 3000);
+          }
+        }).catch(e => console.log('Overpass error', e));
+        
       showToast(`📍 GPS locked — ±${realGPS.accuracy}m accuracy`, 2500);
+
     },
     err => console.log('[GoodStop] Geolocation:', err.message),
     { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
@@ -1045,6 +1079,8 @@ window.openTelemedicModal = async function() {
   if (localVideo) {
     try {
       _telemedicStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+      const localVid = document.getElementById('telemedic-local');
+      if (localVid) localVid.srcObject = _telemedicStream;
       localVideo.srcObject = _telemedicStream;
     } catch (err) {
       console.log('Telemedic camera error:', err);
