@@ -487,83 +487,17 @@ function startModalCountdown(step) {
   }
 }
 
-// ============ EMERGENCY MAP (CANVAS) ============
+// ============ EMERGENCY MAP — deferred to features.js (real Leaflet) ============
 const MAP_W = 800, MAP_H = 540;
 let mapScale = 1;
 let mapOffsetX = 0, mapOffsetY = 0;
 let animFrame = 0;
 
-const mapEntities = {
-  roads: [
-    { x1: 0.05, y1: 0.5, x2: 0.95, y2: 0.5, width: 3 },
-    { x1: 0.5, y1: 0.05, x2: 0.5, y2: 0.95, width: 3 },
-    { x1: 0.1, y1: 0.3, x2: 0.9, y2: 0.7, width: 2 },
-    { x1: 0.2, y1: 0.1, x2: 0.8, y2: 0.9, width: 1.5 },
-    { x1: 0.15, y1: 0.8, x2: 0.85, y2: 0.2, width: 1.5 },
-    { x1: 0.3, y1: 0.05, x2: 0.3, y2: 0.95, width: 1.5 },
-    { x1: 0.7, y1: 0.05, x2: 0.7, y2: 0.95, width: 1.5 },
-    { x1: 0.05, y1: 0.25, x2: 0.95, y2: 0.75, width: 1 },
-    { x1: 0.05, y1: 0.75, x2: 0.95, y2: 0.25, width: 1 },
-  ],
-  accident: { x: 0.52, y: 0.45, label: 'Accident NH-48' },
-  ambulances: [
-    { x: 0.15, y: 0.2, type: 'private', label: 'Medlife #M-14', eta: 9, color: '#00e896', progress: 0 },
-    { x: 0.85, y: 0.8, type: 'govt', label: 'State Amb 108', eta: 34, color: '#0091ff', progress: 0 },
-  ],
-  hospitals: [
-    { x: 0.75, y: 0.2, label: 'Medanta', capacity: 68, color: '#ffb800' },
-    { x: 0.18, y: 0.75, label: 'Fortis', capacity: 87, color: '#ff4757' },
-    { x: 0.55, y: 0.8, label: 'AIIMS', capacity: 45, color: '#00e896' },
-  ]
-};
-
-function initMap() {
-  const container = document.getElementById('map-leaflet');
-  if (!container) return;
-  document.getElementById('map-canvas').style.display = 'none';
-  
-  if (!window.leafletMap) {
-    window.leafletMap = L.map('map-leaflet').setView([INCIDENT.lat, INCIDENT.lng], 14);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
-    }).addTo(window.leafletMap);
-    
-    const incIcon = L.divIcon({className: 'legend-dot legend-dot--accident', iconSize: [16,16]});
-    const hospIcon = L.divIcon({className: 'legend-dot legend-dot--hospital', iconSize: [16,16]});
-    
-    L.marker([INCIDENT.lat, INCIDENT.lng], {icon: incIcon}).addTo(window.leafletMap).bindPopup('Accident: ' + INCIDENT.label);
-    
-    if (window.HOSPITALS && window.HOSPITALS.length > 0) {
-      window.HOSPITALS.forEach(h => {
-        L.marker([h.lat, h.lng], {icon: hospIcon}).addTo(window.leafletMap).bindPopup(h.name);
-      });
-    }
-  } else {
-    window.leafletMap.setView([INCIDENT.lat, INCIDENT.lng], 14);
-    
-    // Clear old markers
-    window.leafletMap.eachLayer(layer => {
-      if (layer instanceof L.Marker) {
-        window.leafletMap.removeLayer(layer);
-      }
-    });
-    
-    const incIcon = L.divIcon({className: 'legend-dot legend-dot--accident', iconSize: [16,16]});
-    const hospIcon = L.divIcon({className: 'legend-dot legend-dot--hospital', iconSize: [16,16]});
-    
-    L.marker([INCIDENT.lat, INCIDENT.lng], {icon: incIcon}).addTo(window.leafletMap).bindPopup('Accident: ' + INCIDENT.label);
-    
-    if (window.HOSPITALS) {
-      window.HOSPITALS.forEach(h => {
-        L.marker([h.lat, h.lng], {icon: hospIcon}).addTo(window.leafletMap).bindPopup(h.name);
-      });
-    }
-  }
-}
-
-function drawMap() {} // Stubbed out for legacy canvas patches
-function mapCenter() { if(window.leafletMap) window.leafletMap.setView([INCIDENT.lat, INCIDENT.lng], 15); }
-function mapZoom(dir) { if(window.leafletMap) window.leafletMap.setZoom(window.leafletMap.getZoom() + dir); }
+// Stubs — real versions in features.js override these after DOMContentLoaded
+function initMap() {}
+function drawMap() {}
+function mapCenter() { if(window.leafletMap) window.leafletMap.setView([INCIDENT ? INCIDENT.lat : 28.4595, INCIDENT ? INCIDENT.lng : 77.0266], 15); }
+function mapZoom(dir) { if(window.leafletMap) dir > 0 ? window.leafletMap.zoomIn() : window.leafletMap.zoomOut(); }
 
 // ============ INCIDENT LIST ============
 function renderIncidents() {
@@ -708,49 +642,10 @@ function updateMapClock() {
 setInterval(updateMapClock, 1000);
 updateMapClock();
 
-// ============ HEATMAP TOGGLE ============
+// ============ HEATMAP TOGGLE — real version in features.js ============
+// app.js stub to avoid reference errors before features.js loads
 let heatmapActive = false;
-const hotspots = [
-  { x: 0.52, y: 0.45, r: 55, intensity: 1.0 },
-  { x: 0.3, y: 0.5, r: 45, intensity: 0.7 },
-  { x: 0.7, y: 0.5, r: 35, intensity: 0.5 },
-  { x: 0.5, y: 0.25, r: 30, intensity: 0.6 },
-  { x: 0.18, y: 0.75, r: 25, intensity: 0.4 },
-  { x: 0.82, y: 0.2, r: 28, intensity: 0.5 },
-  { x: 0.45, y: 0.8, r: 32, intensity: 0.65 },
-];
-
-function toggleHeatmap() {
-  heatmapActive = !heatmapActive;
-  const btn = document.getElementById('map-heatmap-btn');
-  const legend = document.getElementById('heatmap-legend');
-  if (btn) btn.classList.toggle('active', heatmapActive);
-  if (legend) legend.style.display = heatmapActive ? 'flex' : 'none';
-}
-
-// Patch drawMap to include heatmap
-const _origDrawMap = drawMap;
-window.drawMap = function() {
-  _origDrawMap();
-  if (!heatmapActive) return;
-  const canvas = document.getElementById('map-canvas');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const W = canvas.width, H = canvas.height;
-  ctx.save();
-  hotspots.forEach(h => {
-    const cx = h.x * W, cy = h.y * H;
-    const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, h.r);
-    grd.addColorStop(0, `rgba(255,50,50,${0.55 * h.intensity})`);
-    grd.addColorStop(0.5, `rgba(255,140,0,${0.3 * h.intensity})`);
-    grd.addColorStop(1, 'transparent');
-    ctx.beginPath();
-    ctx.arc(cx, cy, h.r, 0, Math.PI * 2);
-    ctx.fillStyle = grd;
-    ctx.fill();
-  });
-  ctx.restore();
-};
+function toggleHeatmap() {}
 
 // ============ AI SEVERITY SCANNER ============
 const severityPresets = [
@@ -1268,6 +1163,7 @@ const smsMessages = [
   { type: 'in', delay: 9000, text: '✅ MEDANTA RECEIVED\nTrauma bay 3 prepared.\nBlood cross-match initiated.\nDr. Sharma on standby.' },
 ];
 
+// playSMSDemo — real version with real SMS buttons added by features.js
 function playSMSDemo() {
   if (smsRunning) return;
   smsRunning = true;
@@ -1287,12 +1183,10 @@ function playSMSDemo() {
         if (si < stepIdx) s.classList.add('done');
         if (si === stepIdx) s.classList.add('active-step');
       });
-
       const wrap = document.createElement('div');
       wrap.innerHTML = `<div class="sms-bubble ${msg.type}">${msg.text.replace(/\n/g, '<br/>')}</div><div class="sms-meta" style="text-align:${msg.type==='out'?'right':'left'}">${new Date().toLocaleTimeString()}</div>`;
       thread.appendChild(wrap);
       thread.scrollTop = thread.scrollHeight;
-
       if (i === smsMessages.length - 1) {
         steps.forEach(s => s.classList.add('done'));
         if (btn) btn.textContent = '▶ Play Again';
@@ -1302,64 +1196,20 @@ function playSMSDemo() {
   });
 }
 
-// ============ MEDICAL ID GENERATOR ============
+// ============ MEDICAL ID — real version in features.js ============
+// Keep local alias so both files share state
 let currentMedID = null;
+Object.defineProperty(window, 'currentMedID', {
+  get() { return currentMedID; },
+  set(v) { currentMedID = v; },
+  configurable: true
+});
 
-function generateMedID() {
-  const blood = document.getElementById('mid-blood')?.value || 'O+';
-  const donor = document.getElementById('mid-donor')?.value || 'Yes';
-  const allergy = document.getElementById('mid-allergy')?.value || 'None';
-  const conditions = document.getElementById('mid-conditions')?.value || 'None';
-  const contact1 = document.getElementById('mid-contact1')?.value || 'Not provided';
-  const contact2 = document.getElementById('mid-contact2')?.value || 'Not provided';
-  const meds = document.getElementById('mid-meds')?.value || 'None';
+// Stub — features.js generateMedID runs instead (has localStorage + QR support)
+function generateMedID() {}
 
-  currentMedID = { blood, donor, allergy, conditions, contact1, contact2, meds };
-
-  const card = document.getElementById('medid-card');
-  const qrBtn = document.getElementById('medid-qr-btn');
-  if (!card) return;
-
-  card.innerHTML = `
-    <div class="medid-card-header">
-      <div class="medid-card-logo">🛑 GoodStop Medical ID</div>
-      <div class="medid-card-emergency">EMERGENCY</div>
-    </div>
-    <div class="medid-blood-group">${blood}</div>
-    <div class="medid-info-grid">
-      <div class="medid-info-item">
-        <div class="medid-info-label">Organ Donor</div>
-        <div class="medid-info-value">${donor}</div>
-      </div>
-      <div class="medid-info-item">
-        <div class="medid-info-label">Medications</div>
-        <div class="medid-info-value">${meds}</div>
-      </div>
-      <div class="medid-info-item">
-        <div class="medid-info-label">Drug Allergies</div>
-        <div class="medid-info-value danger">${allergy || 'None'}</div>
-      </div>
-      <div class="medid-info-item">
-        <div class="medid-info-label">Conditions</div>
-        <div class="medid-info-value">${conditions || 'None'}</div>
-      </div>
-    </div>
-    <div class="medid-contacts">
-      <div class="medid-contacts-label">Emergency Contacts</div>
-      <div class="medid-contact-line">1. ${contact1}</div>
-      <div class="medid-contact-line">2. ${contact2}</div>
-    </div>
-    <div style="position:absolute;bottom:14px;right:14px;font-size:0.6rem;color:rgba(255,255,255,0.25);">GoodStop ID · ${new Date().toLocaleDateString()} · Tap QR to view offline</div>
-  `;
-
-  if (qrBtn) qrBtn.style.display = 'block';
-}
-
-function showQR() {
-  document.getElementById('qr-modal').classList.add('open');
-  document.body.style.overflow = 'hidden';
-  drawQRCode();
-}
+// showQR — stub, features.js overrides with real QRCode.js
+function showQR() {}
 
 function closeQRModal(e) {
   if (!e || e.target === document.getElementById('qr-modal')) {
@@ -1418,22 +1268,11 @@ function drawQRCode() {
   ctx.fillText('GoodStop Medical ID', W / 2, H - 4);
 }
 
-// ============ VOICE SOS ============
-function triggerVoiceSOS() {
-  const modal = document.getElementById('voice-modal');
-  if (!modal) return;
-  modal.classList.add('open');
-  document.body.style.overflow = 'hidden';
-  simulateVoice();
-}
+// ============ VOICE SOS — real impl in features.js ============
+function triggerVoiceSOS() {}
+function closeVoiceModal(e) {}
+function stopVoice() {}
 
-function closeVoiceModal(e) {
-  if (!e || e.target === document.getElementById('voice-modal')) {
-    document.getElementById('voice-modal').classList.remove('open');
-    document.body.style.overflow = '';
-    stopVoice();
-  }
-}
 
 let voiceTimer = null;
 const voicePhrases = [
@@ -1475,38 +1314,9 @@ function simulateVoice() {
   startSimulatedVoice();
 }
 
-function startSimulatedVoice() {
-  const status = document.getElementById('voice-status');
-  const transcript = document.getElementById('voice-transcript');
-  const orb = document.getElementById('voice-orb');
-
-  let i = 0;
-  const chars = '"Accident on highway..."';
-  voiceTimer = setInterval(() => {
-    i++;
-    if (transcript) transcript.textContent = chars.substring(0, i);
-    if (i >= chars.length) {
-      clearInterval(voiceTimer);
-      if (orb) orb.classList.add('detected');
-      if (status) status.textContent = '✅ Emergency detected! Opening report...';
-      setTimeout(() => {
-        closeVoiceModal();
-        openBystander();
-      }, 1500);
-    }
-  }, 60);
-}
-
-function stopVoice() {
-  clearInterval(voiceTimer);
-  if (window._voiceRec) { try { window._voiceRec.stop(); } catch(e) {} }
-  const orb = document.getElementById('voice-orb');
-  if (orb) orb.classList.remove('detected');
-  const status = document.getElementById('voice-status');
-  if (status) status.textContent = 'Listening for emergency phrase...';
-  const t = document.getElementById('voice-transcript');
-  if (t) t.textContent = '';
-}
+// Voice SOS simulated logic — features.js overrides this
+function startSimulatedVoice() {}
+function stopVoice() {}
 
 // ============================================================
 // GOLDEN HOUR INJURY GUIDE

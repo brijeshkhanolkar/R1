@@ -1211,234 +1211,34 @@ window.addEventListener('resize', () => {
   if (leafletMap) leafletMap.invalidateSize();
 });
 // ════════════════════════════════════════════════════
-// LIVE AI CAMERA SCANNER (Webcam API)
+// CHATBOT — Uses rich local KB (no API key needed)
+// Override the sendChatMessage from app.js with smarter local version
 // ════════════════════════════════════════════════════
-let _camStream = null;
-
-window.startAICamera = async function() {
-  const video = document.getElementById('ai-camera-video');
-  const canvas = document.getElementById('ai-camera-canvas');
-  const overlay = document.getElementById('ai-camera-overlay');
-  const btn = document.getElementById('start-cam-btn');
-  
-  if (!video || !canvas) return;
-
-  try {
-    _camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-    video.srcObject = _camStream;
-    
-    // Wait for video metadata to set canvas size
-    video.onloadedmetadata = () => {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-    };
-    
-    video.style.display = 'block';
-    canvas.style.display = 'block';
-    overlay.style.display = 'none'; // hide the old pulse overlay
-    if (btn) btn.style.display = 'none';
-
-    showToast('📷 Camera active. Loading TF.js Object Detection Model...', 3000);
-    
-    // Ensure cocoSsd is loaded from HTML CDNs
-    if (typeof cocoSsd === 'undefined') {
-      throw new Error("COCO-SSD model not loaded. Check internet connection.");
-    }
-
-    const model = await cocoSsd.load();
-    showToast('🧠 AI Model loaded. Scanning scene for damage & casualties...', 3000);
-    
-    const ctx = canvas.getContext('2d');
-    let isScanning = true;
-    let finalDetections = [];
-    
-    // Real-time detection loop
-    async function detectFrame() {
-      if (!isScanning) return;
-      
-      const predictions = await model.detect(video);
-      finalDetections = predictions; // Keep latest
-      
-      // Draw boxes
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      predictions.forEach(p => {
-        const [x, y, width, height] = p.bbox;
-        const text = `${p.class} (${Math.round(p.score * 100)}%)`;
-        
-        // Is it a critical object?
-        const criticalKeywords = ['car', 'truck', 'bus', 'motorcycle', 'bicycle', 'person'];
-        const isCritical = criticalKeywords.includes(p.class.toLowerCase());
-        
-        ctx.strokeStyle = isCritical ? '#ff4757' : '#00e896';
-        ctx.lineWidth = 4;
-        ctx.strokeRect(x, y, width, height);
-        
-        // Draw label background
-        ctx.fillStyle = isCritical ? '#ff4757' : '#00e896';
-        ctx.fillRect(x, y - 25, ctx.measureText(text).width + 10, 25);
-        
-        // Draw label text
-        ctx.fillStyle = '#000000';
-        ctx.font = '16px monospace';
-        ctx.fontWeight = 'bold';
-        ctx.fillText(text, x + 5, y - 7);
-      });
-      
-      requestAnimationFrame(detectFrame);
-    }
-    
-    // Start drawing!
-    detectFrame();
-    
-    // Stop after 4.5 seconds and trigger the UI
-    setTimeout(() => {
-      isScanning = false;
-      video.pause(); // simulate snapshot
-      
-      let topLabel = "unknown object";
-      let prob = 0;
-      let isCritical = false;
-      
-      if (finalDetections.length > 0) {
-        // Find highest score
-        finalDetections.sort((a, b) => b.score - a.score);
-        topLabel = finalDetections[0].class;
-        prob = (finalDetections[0].score * 100).toFixed(1);
-        
-        const criticalKeywords = ['car', 'truck', 'bus', 'motorcycle', 'bicycle', 'person'];
-        isCritical = finalDetections.some(d => criticalKeywords.includes(d.class.toLowerCase()));
-      }
-      
-      overlay.style.display = 'block'; // Show the final summary overlay
-      if (isCritical) {
-        overlay.innerHTML = `<div style="position:absolute; inset:0; border:4px solid #ff4757; background:rgba(255,71,87,0.1);">
-          <div style="position:absolute; bottom:12px; width:100%; text-align:center; color:#ff4757; font-family:monospace; font-weight:bold; font-size:14px; background:rgba(0,0,0,0.8); padding:6px 0;">[ CRITICAL: ${topLabel.toUpperCase()} DETECTED (${prob}%) ]</div>
-        </div>`;
-        showToast(`⚠️ AI detected: ${topLabel}. Prioritizing ALS dispatch.`, 4000);
-      } else {
-         overlay.innerHTML = `<div style="position:absolute; inset:0; border:4px solid #ffb800; background:rgba(255,184,0,0.1);">
-          <div style="position:absolute; bottom:12px; width:100%; text-align:center; color:#ffb800; font-family:monospace; font-weight:bold; font-size:14px; background:rgba(0,0,0,0.8); padding:6px 0;">[ MODERATE: ${topLabel.toUpperCase()} DETECTED (${prob}%) ]</div>
-        </div>`;
-        showToast(`🟡 AI detected: ${topLabel}. Suggesting BLS dispatch.`, 4000);
-      }
-
-      // Trigger the existing result logic with the AI's actual findings
-      const input = document.getElementById('severity-input');
-      if (input) {
-        input.value = `AI Object Detection: ${topLabel} (${prob}% confidence). ${isCritical ? 'Severe damage/collision likely.' : 'Minor incident.'}`;
-      }
-      
-      if (typeof runSeverityScan === 'function') {
-        runSeverityScan();
-      }
-      
-      // Stop camera track completely
-      setTimeout(() => {
-        if (_camStream) {
-          _camStream.getTracks().forEach(t => t.stop());
-        }
-      }, 5000);
-
-    }, 4500); // 4.5 seconds of live bounding boxes
-
-  } catch (err) {
-    console.error('Camera or AI Error', err);
-    showToast('❌ Camera or AI model failed to load. Please use manual description.');
-  }
-};
-// ════════════════════════════════════════════════════
-// REAL CHATGPT API INTEGRATION — Overriding chat logic
-// ════════════════════════════════════════════════════
-function getOpenAIKey() {
-  let key = localStorage.getItem('goodstop_openai_key');
-  if (!key) {
-    key = prompt("Please enter your OpenAI API Key for the hackathon demo (it will be saved locally):");
-    if (key) localStorage.setItem('goodstop_openai_key', key);
-  }
-  return key;
-}
-
-// Override the demo sendChatMessage function globally
-window.sendChatMessage = async function(text) {
-  const OPENAI_API_KEY = getOpenAIKey();
-  if (!OPENAI_API_KEY) {
-    showToast('❌ OpenAI API Key is required for the Legal AI.');
-    return;
-  }
-  
+window.sendChatMessage = function(text) {
   const msgs = document.getElementById('chat-messages');
   if (!msgs) return;
-  
-  // 1. Add User Message
+
   const userMsg = document.createElement('div');
   userMsg.className = 'chat-msg chat-msg--user';
   userMsg.innerHTML = `<div class="chat-bubble">${text}</div>`;
   msgs.appendChild(userMsg);
-  msgs.scrollTop = msgs.scrollHeight;
 
-  // 2. Add Typing Indicator
   const typing = document.createElement('div');
   typing.className = 'chat-msg chat-msg--bot';
   typing.innerHTML = `<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>`;
   msgs.appendChild(typing);
   msgs.scrollTop = msgs.scrollHeight;
 
-  // 3. Call ChatGPT API
-  try {
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${OPENAI_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini", // Using fast model for hackathon demo
-        messages: [
-          {
-            role: "system", 
-            content: "You are the 'GoodStop AI Legal & Safety Assistant'. You help users in India understand the Good Samaritan Law (which protects bystanders who help accident victims from legal harassment or police questioning). You also provide road safety advice, first aid tips, and emergency instructions. Keep your answers concise, reassuring, highly informative, and format them nicely with bolding or bullet points."
-          },
-          { role: "user", content: text }
-        ],
-        max_tokens: 250,
-        temperature: 0.7
-      })
-    });
-
-    const data = await response.json();
-    msgs.removeChild(typing);
-
-    if (data.choices && data.choices.length > 0) {
-      const botResponse = data.choices[0].message.content;
-      
-      const botMsg = document.createElement('div');
-      botMsg.className = 'chat-msg chat-msg--bot';
-      // Format response (convert markdown bold/lists to HTML)
-      const formattedHtml = botResponse
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.*?)\*/g, '<em>$1</em>')
-        .replace(/\n/g, '<br/>');
-        
-      botMsg.innerHTML = `<div class="chat-bubble">${formattedHtml}</div>`;
-      msgs.appendChild(botMsg);
-    } else {
-      throw new Error("Invalid API response format");
-    }
-  } catch (error) {
-    console.error("[GoodStop API Error]:", error);
-    msgs.removeChild(typing);
-    
-    // Fallback on error
-    const errorMsg = document.createElement('div');
-    errorMsg.className = 'chat-msg chat-msg--bot';
-    errorMsg.innerHTML = `<div class="chat-bubble"><strong style="color:var(--accent-red)">Connection Error:</strong> Our AI is currently offline. Under the Good Samaritan Law, you cannot be harassed for helping victims. Please call 108 immediately.</div>`;
-    msgs.appendChild(errorMsg);
-  }
-  
-  msgs.scrollTop = msgs.scrollHeight;
+  const response = getLocalChatResponse(text);
+  setTimeout(() => {
+    typing.remove();
+    const botMsg = document.createElement('div');
+    botMsg.className = 'chat-msg chat-msg--bot';
+    botMsg.innerHTML = `<div class="chat-bubble">${response.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>')}</div>`;
+    msgs.appendChild(botMsg);
+    msgs.scrollTop = msgs.scrollHeight;
+  }, 900 + Math.random() * 500);
 };
-
 
 
 // ════════════════════════════════════════════════════
