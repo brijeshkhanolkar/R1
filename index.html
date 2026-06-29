@@ -17,6 +17,20 @@
   <!-- TensorFlow.js & COCO-SSD — True AI Object Detection -->
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.20.0/dist/tf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.2/dist/coco-ssd.min.js"></script>
+  <!-- SEO & Open Graph -->
+  <meta name="robots" content="index, follow" />
+  <meta name="author" content="Brijesh Khanolkar" />
+  <meta name="keywords" content="road safety, emergency, BIMSTEC, Good Samaritan, accident, ambulance, AI routing, PWA" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="GoodStop — Road Safety Emergency Platform | BIMSTEC 2026" />
+  <meta property="og:description" content="GoodStop removes bystander paralysis at road accidents with anonymous reporting, instant legal protection, AI-powered emergency routing, and offline SMS fallback across all 8 BIMSTEC nations." />
+  <meta property="og:image" content="icon-192.svg" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="GoodStop — Road Safety Emergency Platform" />
+  <meta name="twitter:description" content="Anonymous reporting · Legal protection · AI emergency routing · Works on 2G" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="GoodStop" />
   <!-- PWA Manifest -->
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#050d12" />
@@ -24,6 +38,13 @@
 
 </head>
 <body>
+  <noscript>
+    <div style="position:fixed;inset:0;background:#050d12;color:#f0f6ff;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;font-family:sans-serif;text-align:center;padding:24px;z-index:99999">
+      <div style="font-size:3rem">🛑</div>
+      <h1 style="font-size:1.5rem;color:#00e896">GoodStop requires JavaScript</h1>
+      <p style="color:#8ba4c0;max-width:360px">Please enable JavaScript in your browser to use GoodStop's emergency reporting, AI routing, and legal protection features.</p>
+    </div>
+  </noscript>
 
   <!-- NAV -->
   <nav class="nav" id="main-nav">
@@ -33,7 +54,7 @@
         <span class="logo-text">Good<span class="logo-accent">Stop</span></span>
         <span class="nav-badge">BIMSTEC 2026</span>
       </div>
-      <div class="nav-links">
+      <div class="nav-links" id="nav-links">
         <a href="#demo" class="nav-link" id="nav-demo">Live Demo</a>
         <a href="#dashboard" class="nav-link" id="nav-dashboard">Dashboard</a>
         <a href="#severity" class="nav-link" id="nav-severity">AI Scanner</a>
@@ -54,6 +75,11 @@
           <option value="si">🇱🇰 සිංහල</option>
         </select>
         <button class="btn-primary" id="btn-cta" onclick="openBystander()">Try Simulator</button>
+        <button class="hamburger-btn" id="hamburger-btn" aria-label="Toggle navigation menu" aria-expanded="false" onclick="toggleMobileNav()">
+          <span class="ham-bar"></span>
+          <span class="ham-bar"></span>
+          <span class="ham-bar"></span>
+        </button>
       </div>
     </div>
   </nav>
@@ -925,7 +951,7 @@
   <!-- TELE-MEDIC VIDEO CALL MODAL -->
   <div class="modal-overlay" id="telemedic-modal" onclick="closeTelemedicModal(event)">
     <div class="qr-modal-content" style="width:90%; max-width:800px; background:#050d12; border:1px solid #00e896; box-shadow:0 0 40px rgba(0,232,150,0.15);">
-      <button class="modal-close" onclick="closeTelemedicModal()">×</button>
+      <button class="modal-close" onclick="closeTelemedicModal()" aria-label="Close telemedic modal">×</button>
       <div class="qr-modal-body" style="padding:0;">
         <div style="background:#0a1520; padding:16px 24px; border-bottom:1px solid rgba(0,232,150,0.2); display:flex; justify-content:space-between; align-items:center;">
           <div>
@@ -977,7 +1003,7 @@
   <!-- BYSTANDER SIMULATOR MODAL -->
   <div class="modal-overlay" id="bystander-modal" onclick="closeModal(event)">
     <div class="modal-content" id="modal-content">
-      <button class="modal-close" onclick="closeBystander()" id="modal-close-btn">×</button>
+      <button class="modal-close" onclick="closeBystander()" id="modal-close-btn" aria-label="Close simulator">×</button>
       <div class="modal-phone" id="modal-phone">
         <div class="modal-notch"></div>
         <div class="modal-screen" id="modal-screen">

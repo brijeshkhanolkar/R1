@@ -652,7 +652,8 @@ function triggerVoiceSOS() {
 }
 
 function closeVoiceModal(e) {
-  if (e && e.target !== document.getElementById('voice-modal')) return;
+  // Only guard overlay-click events (not button clicks — those have no target check)
+  if (e && e.type === 'click' && e.target !== document.getElementById('voice-modal')) return;
   _closeVoiceModal();
 }
 function _closeVoiceModal() {
@@ -834,15 +835,7 @@ function playSMSDemo() {
     };
   }
 
-  // Patch SIM_STEPS[1] (Detecting location) to use real GPS info
-  if (window.SIM_STEPS[1]) {
-    const original1 = window.SIM_STEPS[1].render;
-    window.SIM_STEPS[1].render = function() {
-      return original1.call(this)
-        .replace('NH-48, km 28.4', INCIDENT.label)
-        .replace('28.4595°N, 77.0266°E', `${INCIDENT.lat.toFixed(4)}°N, ${INCIDENT.lng.toFixed(4)}°E`);
-    };
-  }
+  // NOTE: SIM_STEPS[1] GPS patch already applied above (real GPS block). No second patch needed.
 
   // Patch SIM_STEPS[2] (legal screen) for Dynamic Reverse-Geocoded Laws
   if (window.SIM_STEPS[2]) {
@@ -1053,12 +1046,20 @@ window.showToast = function(msg, ms) {
   playSound('ping');
 };
 
-// Intercept simNext to add a 'pulse' sound
+// Intercept simNext to add a 'pulse' sound + fire browser notifications
 const originalSimNext = window.simNext;
 if (originalSimNext) {
   window.simNext = function() {
     playSound('pulse');
     originalSimNext();
+    // Notifications at key steps
+    const step = window.simCurrentStep ?? 0;
+    if (step === 3) {
+      sendBrowserNotification('⚡ GoodStop — Ambulance Dispatched', 'Medlife Private Ambulance #M-14 dispatched. ETA: 9 minutes to scene.', 400);
+    }
+    if (step === 4) {
+      sendBrowserNotification('🚨 GoodStop — Family Alert Sent', 'An accident has been reported near a registered family member. Ambulance ETA: 9 minutes.', 800);
+    }
   };
 }
 
@@ -1092,7 +1093,8 @@ window.openTelemedicModal = async function() {
 };
 
 window.closeTelemedicModal = function(e) {
-  if (e && e.target !== document.getElementById('telemedic-modal')) return;
+  // Only guard overlay-click (not button clicks)
+  if (e && e.type === 'click' && e.target !== document.getElementById('telemedic-modal')) return;
   const modal = document.getElementById('telemedic-modal');
   if (modal) {
     modal.classList.remove('open');
@@ -1133,30 +1135,9 @@ function callEmergency() {
 }
 
 // ════════════════════════════════════════════════════
-// BYSTANDER STEP — trigger real notifications at step 5
+// MODAL NEXT — trigger browser notifications in bystander modal
+// (simNext notifications handled inside the IIFE sound patch above)
 // ════════════════════════════════════════════════════
-const _origSimNext = window.simNext;
-window.simNext = function() {
-  if (typeof _origSimNext === 'function') _origSimNext();
-  // Use correct simCurrentStep variable (from app.js)
-  const step = window.simCurrentStep ?? 0;
-  if (step === 4) {
-    sendBrowserNotification(
-      '🚨 GoodStop — Family Alert Sent',
-      'An accident has been reported near a registered family member. Ambulance ETA: 9 minutes.',
-      800
-    );
-  }
-  if (step === 3) {
-    sendBrowserNotification(
-      '⚡ GoodStop — Ambulance Dispatched',
-      'Medlife Private Ambulance #M-14 dispatched. ETA: 9 minutes to scene.',
-      400
-    );
-  }
-};
-
-// Also patch modalNext
 const _origModalNext = window.modalNext;
 window.modalNext = function() {
   const stepBefore = window.modalStep ?? 0;
@@ -1211,34 +1192,8 @@ window.addEventListener('resize', () => {
   if (leafletMap) leafletMap.invalidateSize();
 });
 // ════════════════════════════════════════════════════
-// CHATBOT — Uses rich local KB (no API key needed)
-// Override the sendChatMessage from app.js with smarter local version
+// CHATBOT — local KB override applied after extendedChatDB is defined (below)
 // ════════════════════════════════════════════════════
-window.sendChatMessage = function(text) {
-  const msgs = document.getElementById('chat-messages');
-  if (!msgs) return;
-
-  const userMsg = document.createElement('div');
-  userMsg.className = 'chat-msg chat-msg--user';
-  userMsg.innerHTML = `<div class="chat-bubble">${text}</div>`;
-  msgs.appendChild(userMsg);
-
-  const typing = document.createElement('div');
-  typing.className = 'chat-msg chat-msg--bot';
-  typing.innerHTML = `<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>`;
-  msgs.appendChild(typing);
-  msgs.scrollTop = msgs.scrollHeight;
-
-  const response = getLocalChatResponse(text);
-  setTimeout(() => {
-    typing.remove();
-    const botMsg = document.createElement('div');
-    botMsg.className = 'chat-msg chat-msg--bot';
-    botMsg.innerHTML = `<div class="chat-bubble">${response.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>')}</div>`;
-    msgs.appendChild(botMsg);
-    msgs.scrollTop = msgs.scrollHeight;
-  }, 900 + Math.random() * 500);
-};
 
 
 // ════════════════════════════════════════════════════

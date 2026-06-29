@@ -75,12 +75,53 @@ document.getElementById('lang-select').addEventListener('change', function () {
   if (el('btn-cta')) el('btn-cta').textContent = t.btnCta;
 });
 
-// ============ NAV SCROLL ============
+// ============ NAV SCROLL + ACTIVE LINK ============
 window.addEventListener('scroll', () => {
   const nav = document.getElementById('main-nav');
   if (window.scrollY > 40) nav.classList.add('scrolled');
   else nav.classList.remove('scrolled');
 });
+
+// Nav active link on scroll (IntersectionObserver)
+(function initNavActiveLinks() {
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('.nav-link');
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        navLinks.forEach(l => l.classList.remove('active'));
+        const active = document.querySelector(`.nav-link[href="#${entry.target.id}"]`);
+        if (active) active.classList.add('active');
+      }
+    });
+  }, { threshold: 0.35, rootMargin: '-64px 0px -30% 0px' });
+  sections.forEach(s => obs.observe(s));
+})();
+
+// ============ MOBILE NAV TOGGLE ============
+function toggleMobileNav() {
+  const links = document.getElementById('nav-links');
+  const btn   = document.getElementById('hamburger-btn');
+  if (!links || !btn) return;
+  const isOpen = links.classList.toggle('mobile-open');
+  btn.classList.toggle('open', isOpen);
+  btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+}
+
+// Close mobile nav when a link is clicked
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.nav-link').forEach(link => {
+    link.addEventListener('click', () => {
+      const links = document.getElementById('nav-links');
+      const btn   = document.getElementById('hamburger-btn');
+      if (links && links.classList.contains('mobile-open')) {
+        links.classList.remove('mobile-open');
+        if (btn) { btn.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); }
+      }
+    });
+  });
+});
+
 
 // ============ PARTICLES ============
 function createParticles() {
@@ -573,10 +614,11 @@ function sendChat() {
   sendChatMessage(text);
 }
 
-function sendChatMessage(text) {
+// ============ CHATBOT — GPT-4o-mini API (with local fallback) ============
+async function sendChatMessage(text) {
   const msgs = document.getElementById('chat-messages');
-  
-  // User message
+
+  // Append user bubble
   const userMsg = document.createElement('div');
   userMsg.className = 'chat-msg chat-msg--user';
   userMsg.innerHTML = `<div class="chat-bubble">${text}</div>`;
@@ -590,24 +632,84 @@ function sendChatMessage(text) {
   msgs.appendChild(typing);
   msgs.scrollTop = msgs.scrollHeight;
 
-  // Find response
-  const key = text.toLowerCase().trim();
-  let response = chatResponses.default;
-  for (const [k, v] of Object.entries(chatResponses)) {
-    if (key.includes(k) || k.includes(key.substring(0, 10))) {
-      response = v;
-      break;
+  // Retrieve or prompt for API key
+  let apiKey = localStorage.getItem('goodstop_openai_key');
+  if (!apiKey) {
+    apiKey = prompt('🔑 Enter your OpenAI API key to enable AI chat.\nIt is saved locally and only sent to OpenAI:');
+    if (apiKey && apiKey.trim().startsWith('sk-')) {
+      localStorage.setItem('goodstop_openai_key', apiKey.trim());
+      apiKey = apiKey.trim();
+    } else {
+      apiKey = null;
     }
   }
 
-  setTimeout(() => {
-    msgs.removeChild(typing);
-    const botMsg = document.createElement('div');
-    botMsg.className = 'chat-msg chat-msg--bot';
-    botMsg.innerHTML = `<div class="chat-bubble">${response.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>')}</div>`;
-    msgs.appendChild(botMsg);
-    msgs.scrollTop = msgs.scrollHeight;
-  }, 1200 + Math.random() * 800);
+  let response = null;
+
+  if (apiKey) {
+    try {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          max_tokens: 280,
+          temperature: 0.6,
+          messages: [
+            {
+              role: 'system',
+              content: `You are ARIA, the AI assistant for GoodStop — a road accident emergency app used across BIMSTEC nations (India, Bangladesh, Myanmar, Sri Lanka, Thailand, Nepal, Bhutan, Maldives). Your role:\n\n• Give clear, calm, life-saving guidance to bystanders at accident scenes.\n• Always reassure users they are legally protected under their country's Good Samaritan Law.\n• Provide CPR, bleeding, burns, recovery position guidance in simple numbered steps.\n• Keep responses SHORT (4-6 lines max). Use **bold** for key actions.\n• End critical responses with: "🚑 Help is on the way. You are safe to assist."\n• Never say you cannot help. Always give actionable advice.\n• Auto-detect language: reply in Hindi if the message is in Hindi, Bengali if Bengali, Thai if Thai, Nepali if Nepali, Sinhala if Sinhala, English otherwise.`
+            },
+            { role: 'user', content: text }
+          ]
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        response = data.choices?.[0]?.message?.content || null;
+      } else if (res.status === 401) {
+        localStorage.removeItem('goodstop_openai_key');
+        response = '❌ Invalid API key. Key cleared — using local AI. Click the ⚙ icon to re-enter your key.';
+      }
+    } catch (e) {
+      console.warn('[GoodStop] OpenAI API error:', e);
+    }
+  }
+
+  // Fallback to extended local KB
+  if (!response) {
+    const lower = text.toLowerCase();
+    const db = window.extendedChatDB || chatResponses;
+    for (const [k, v] of Object.entries(db)) {
+      if (lower.includes(k)) { response = v; break; }
+    }
+    response = response || chatResponses?.default || `I can help with:\n\n🛡️ **Legal protection** — Good Samaritan laws\n🚑 **Emergency routing** — AI ambulance dispatch\n💬 **First aid** — CPR, bleeding, burns\n🌍 **Multilingual** — Hindi, Bengali, Thai\n\nWhat do you need right now?`;
+  }
+
+  // Remove typing indicator and show response
+  if (typing.parentNode === msgs) msgs.removeChild(typing);
+  const botMsg = document.createElement('div');
+  botMsg.className = 'chat-msg chat-msg--bot';
+  botMsg.innerHTML = `<div class="chat-bubble">${response.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>')}</div>`;
+  msgs.appendChild(botMsg);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+// Allow resetting API key via settings icon in chat header
+function resetChatAPIKey() {
+  const existing = localStorage.getItem('goodstop_openai_key');
+  const newKey = prompt(`🔑 Current key: ${existing ? existing.slice(0,8) + '••••' : 'None'}\n\nEnter new OpenAI API key (leave blank to clear):`);
+  if (newKey === null) return;
+  if (newKey.trim()) {
+    localStorage.setItem('goodstop_openai_key', newKey.trim());
+    try { showToast('✅ OpenAI API key saved! ARIA is now powered by GPT-4o-mini.'); } catch(e) {}
+  } else {
+    localStorage.removeItem('goodstop_openai_key');
+    try { showToast('🗑 API key cleared. Using local knowledge base.'); } catch(e) {}
+  }
 }
 
 // ============ INIT ============
@@ -1038,7 +1140,8 @@ const analyticsObs = new IntersectionObserver((entries) => {
 }, { threshold: 0.2 });
 const analyticsEl = document.getElementById('analytics');
 if (analyticsEl) analyticsObs.observe(analyticsEl);
-window.addEventListener('resize', initCharts);
+// Use rAF on resize so canvas offsetWidth is accurate after reflow
+window.addEventListener('resize', () => requestAnimationFrame(initCharts));
 
 // ============ BIMSTEC LAW DATABASE ============
 const bimstecLaws = [
@@ -1188,9 +1291,11 @@ function playSMSDemo() {
       thread.appendChild(wrap);
       thread.scrollTop = thread.scrollHeight;
       if (i === smsMessages.length - 1) {
-        steps.forEach(s => s.classList.add('done'));
-        if (btn) btn.textContent = '▶ Play Again';
-        smsRunning = false;
+        setTimeout(() => {
+          steps.forEach(s => s.classList.add('done'));
+          if (btn) btn.textContent = '▶ Play Again';
+          smsRunning = false;
+        }, 500);
       }
     }, msg.delay);
   });

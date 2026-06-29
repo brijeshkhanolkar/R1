@@ -1,24 +1,47 @@
-const CACHE_NAME = 'goodstop-v2';
-const ASSETS_TO_CACHE = [
+const CACHE_NAME = 'goodstop-v3';
+const CORE_ASSETS = [
   './',
   './index.html',
   './style.css',
   './app.js',
   './features.js',
   './manifest.json',
-  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
-  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js'
+  './icon-192.svg',
 ];
 
-// Install Event - cache assets
+// CDN assets — fetched with no-cors (opaque responses), so cached separately
+const CDN_ASSETS = [
+  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
+  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js',
+  'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap',
+];
+
+// These should never be served from cache (live APIs)
+const NO_CACHE_PATTERNS = [
+  'api.openai.com',
+  'overpass-api.de',
+  'nominatim.openstreetmap.org',
+  'api.open-meteo.com',
+  'api.qrserver.com',
+];
+
+// Install Event - cache core + CDN assets
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => {
-        console.log('[GoodStop SW] Caching offline assets');
-        return cache.addAll(ASSETS_TO_CACHE);
-      })
+    caches.open(CACHE_NAME).then(async cache => {
+      console.log('[GoodStop SW] Caching core offline assets');
+      // Cache core assets (same-origin, full control)
+      await cache.addAll(CORE_ASSETS);
+      // Cache CDN assets with no-cors (opaque — best effort)
+      await Promise.allSettled(
+        CDN_ASSETS.map(url =>
+          fetch(url, { mode: 'no-cors' })
+            .then(res => cache.put(url, res))
+            .catch(() => console.log(`[GoodStop SW] Skipped CDN: ${url}`))
+        )
+      );
+    })
   );
   self.skipWaiting();
 });
@@ -26,12 +49,11 @@ self.addEventListener('install', event => {
 // Activate Event - clean up old caches
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(keys => {
-      return Promise.all(
-        keys.filter(key => key !== CACHE_NAME)
-            .map(key => caches.delete(key))
-      );
-    })
+    caches.keys().then(keys =>
+      Promise.all(
+        keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
+      )
+    )
   );
   self.clients.claim();
 });
@@ -40,17 +62,23 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   // Only handle GET requests
   if (event.request.method !== 'GET') return;
-  
-  // Don't intercept API calls (like OpenAI or Overpass)
-  if (event.request.url.includes('api.openai.com') || event.request.url.includes('overpass-api.de')) {
-    return;
-  }
+
+  const url = event.request.url;
+
+  // Never intercept live API calls
+  if (NO_CACHE_PATTERNS.some(pattern => url.includes(pattern))) return;
+
+  // Never intercept chrome-extension or non-http requests
+  if (!url.startsWith('http')) return;
 
   event.respondWith(
     fetch(event.request)
       .then(response => {
-        // If network fetch succeeds, cache a copy of it
-        if (response && response.status === 200 && response.type === 'basic') {
+        // Cache successful same-origin responses only (not opaque CDN)
+        if (
+          response && response.status === 200 &&
+          (response.type === 'basic' || response.type === 'cors')
+        ) {
           const resClone = response.clone();
           caches.open(CACHE_NAME).then(cache => {
             cache.put(event.request, resClone);
@@ -59,9 +87,18 @@ self.addEventListener('fetch', event => {
         return response;
       })
       .catch(() => {
-        // If network fails (offline), serve from cache
-        console.log(`[GoodStop SW] Serving ${event.request.url} from cache (offline mode)`);
-        return caches.match(event.request);
+        // Offline: serve from cache
+        return caches.match(event.request).then(cached => {
+          if (cached) {
+            console.log(`[GoodStop SW] Offline → cache: ${url}`);
+            return cached;
+          }
+          // For navigation requests, return the main page
+          if (event.request.mode === 'navigate') {
+            return caches.match('./index.html');
+          }
+          return new Response('', { status: 503, statusText: 'Offline' });
+        });
       })
   );
 });

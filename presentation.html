@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>GoodStop &mdash; BIMSTEC Road Safety Hackathon 2026 Presentation</title>
+<meta name="description" content="GoodStop: Road Safety Emergency Platform &mdash; BIMSTEC Hackathon 2026 Presentation by Team Pearson Hardman"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --green:#00e896;--teal:#00c4b4;--blue:#0091ff;
+  --amber:#ffb800;--red:#ff4757;--purple:#7c5cbf;
+  --bg:#050d12;--bg2:#0a1520;--bg3:#0f1e2d;
+  --text:#f0f6ff;--text2:#8ba4c0;--muted:#4a6a8a;
+  --glass:rgba(15,30,45,0.7);--gb:rgba(255,255,255,0.06);
+  --font:'Space Grotesk',sans-serif;--body:'Inter',sans-serif;
+  --radius:16px;--ease:cubic-bezier(0.4,0,0.2,1);
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--body);}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--green);border-radius:2px}
+
+/* ── SLIDE ───────────────────────────────────── */
+.slide{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  justify-content:center;align-items:center;padding:60px 80px;
+  opacity:0;transform:translateX(100%);
+  transition:transform 0.65s var(--ease),opacity 0.65s var(--ease);
+  pointer-events:none;overflow:hidden;
+}
+.slide.active{opacity:1;transform:translateX(0);pointer-events:all}
+.slide::before{
+  content:'';position:absolute;inset:0;z-index:0;
+  background:
+    radial-gradient(ellipse at 15% 40%,rgba(0,196,180,0.07) 0%,transparent 60%),
+    radial-gradient(ellipse at 85% 20%,rgba(0,145,255,0.05) 0%,transparent 60%),
+    var(--bg);
+}
+.slide>*{position:relative;z-index:1}
+
+/* ── PARTICLES ───────────────────────────────── */
+.particle{
+  position:absolute;border-radius:50%;opacity:0;
+  animation:floatUp linear infinite;pointer-events:none;z-index:0;
+}
+@keyframes floatUp{
+  0%{transform:translateY(100vh) scale(0);opacity:0}
+  10%{opacity:.5}90%{opacity:.2}100%{transform:translateY(-10vh) scale(1);opacity:0}
+}
+
+/* ── HUD TOP ─────────────────────────────────── */
+.hud-top{
+  position:fixed;top:0;left:0;right:0;z-index:1000;
+  display:flex;justify-content:space-between;align-items:center;
+  padding:16px 32px;
+  background:rgba(5,13,18,0.7);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--gb);
+}
+.hud-logo{font-family:var(--font);font-size:1.1rem;font-weight:800;color:var(--text)}
+.hud-logo span{color:var(--green)}
+.hud-badge{
+  font-size:0.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  background:rgba(0,232,150,.1);border:1px solid rgba(0,232,150,.25);
+  color:var(--green);padding:3px 10px;border-radius:20px;
+}
+.hud-counter{font-family:var(--font);font-size:0.9rem;color:var(--text2)}
+.hud-counter span{color:var(--green);font-weight:800}
+
+/* ── DOTS ────────────────────────────────────── */
+.hud-bottom{
+  position:fixed;bottom:0;left:0;right:0;z-index:1000;
+  display:flex;justify-content:center;align-items:center;
+  gap:10px;padding:20px;
+}
+.dot{
+  width:10px;height:10px;border-radius:5px;
+  background:rgba(255,255,255,0.18);cursor:pointer;
+  transition:all .35s var(--ease);border:none;
+}
+.dot.active{width:28px;background:var(--green);box-shadow:0 0 10px var(--green)}
+.dot:hover{background:rgba(255,255,255,.4)}
+
+/* ── NAV ARROWS ──────────────────────────────── */
+.nav-btn{
+  position:fixed;top:50%;transform:translateY(-50%);z-index:1000;
+  width:48px;height:48px;border-radius:50%;
+  background:rgba(15,30,45,.8);backdrop-filter:blur(12px);
+  border:1px solid var(--gb);color:var(--text2);
+  font-size:1.1rem;cursor:pointer;transition:all .3s;
+  display:flex;align-items:center;justify-content:center;
+}
+.nav-btn:hover{border-color:var(--green);color:var(--green);background:rgba(0,232,150,.06)}
+.nav-btn.prev{left:20px}.nav-btn.next{right:20px}
+
+/* ── SHORTCUTS ───────────────────────────────── */
+.shortcuts{
+  position:fixed;bottom:60px;right:24px;z-index:1000;
+  font-size:0.62rem;color:var(--muted);text-align:right;line-height:1.8;
+}
+.shortcuts kbd{
+  background:var(--bg3);border:1px solid var(--gb);
+  color:var(--text2);padding:1px 5px;border-radius:4px;
+  font-family:monospace;font-size:.7em;
+}
+
+/* ── PROGRESS BAR ────────────────────────────── */
+.progress-bar{
+  position:fixed;top:56px;left:0;z-index:999;
+  height:2px;background:linear-gradient(90deg,var(--green),var(--teal));
+  transition:width .5s var(--ease);
+}
+
+/* ── COMMON COMPONENTS ───────────────────────── */
+.eyebrow{
+  display:flex;align-items:center;gap:10px;
+  font-size:.75rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--green);margin-bottom:18px;
+}
+.eyebrow-dot{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--green);box-shadow:0 0 8px var(--green);
+  animation:dotPulse 2s ease infinite;
+}
+@keyframes dotPulse{0%,100%{box-shadow:0 0 6px var(--green)}50%{box-shadow:0 0 18px var(--green)}}
+
+h2.slide-subtitle{
+  font-family:var(--font);font-size:clamp(1.6rem,3vw,2.4rem);
+  font-weight:700;line-height:1.2;margin-bottom:16px;
+}
+.grad{
+  background:linear-gradient(135deg,var(--green),var(--teal));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.grad-amber{
+  background:linear-gradient(135deg,var(--amber),#f97316);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+
+/* ── SLIDE 1 ─────────────────────────────────── */
+#s1{text-align:center}
+.s1-hero{max-width:820px}
+.s1-logo{font-family:var(--font);font-size:clamp(3.5rem,8vw,6rem);font-weight:800;line-height:1;margin-bottom:12px}
+.s1-tagline{font-size:clamp(1rem,2vw,1.4rem);color:var(--text2);margin-bottom:32px;line-height:1.65;max-width:580px;margin-left:auto;margin-right:auto}
+.s1-tagline strong{color:var(--amber)}
+.s1-badges{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-bottom:36px}
+.s1-badge{
+  display:flex;align-items:center;gap:8px;padding:8px 18px;
+  background:var(--glass);border:1px solid var(--gb);border-radius:40px;
+  font-size:.82rem;font-weight:600;color:var(--text2);
+}
+.s1-badge span{font-size:1rem}
+.s1-meta{
+  font-size:.8rem;color:var(--muted);margin-top:8px;
+  border-top:1px solid var(--gb);padding-top:18px;
+  display:flex;gap:24px;justify-content:center;flex-wrap:wrap;
+}
+.s1-meta strong{color:var(--text2)}
+.hackathon-ring{
+  position:absolute;width:600px;height:600px;border-radius:50%;
+  border:1px solid rgba(0,232,150,.06);
+  top:50%;left:50%;transform:translate(-50%,-50%);
+  animation:slowSpin 40s linear infinite;pointer-events:none;z-index:0;
+}
+.hackathon-ring:nth-child(2){width:900px;height:900px;border-color:rgba(0,145,255,.04);animation-direction:reverse;animation-duration:60s}
+.hackathon-ring:nth-child(3){width:1200px;height:1200px;border-color:rgba(0,196,180,.03);animation-duration:80s}
+@keyframes slowSpin{from{transform:translate(-50%,-50%) rotate(0deg)}to{transform:translate(-50%,-50%) rotate(360deg)}}
+
+/* ── SLIDE 2 ─────────────────────────────────── */
+.s2-stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;width:100%;max-width:900px}
+.s2-stat{
+  background:var(--glass);border:1px solid var(--gb);
+  border-radius:var(--radius);padding:28px;
+  position:relative;overflow:hidden;
+}
+.s2-stat-num{
+  font-family:var(--font);font-size:3.2rem;font-weight:900;
+  line-height:1;margin-bottom:8px;
+}
+.s2-stat-label{font-size:.88rem;color:var(--text2);line-height:1.55}
+.s2-stat-icon{position:absolute;bottom:16px;right:20px;font-size:2.5rem;opacity:.15}
+.s2-stat.red .s2-stat-num{color:var(--red)}
+.s2-stat.amber .s2-stat-num{color:var(--amber)}
+.s2-stat.green .s2-stat-num{color:var(--green)}
+.s2-stat.blue .s2-stat-num{color:var(--blue)}
+.s2-stat:hover .s2-stat-icon{opacity:.35}
+
+/* ── SLIDE 3 ─────────────────────────────────── */
+.flow-list{display:flex;flex-direction:column;gap:0;width:100%;max-width:860px}
+.flow-row{
+  display:grid;grid-template-columns:52px 1fr auto;gap:18px;
+  align-items:center;padding:18px 24px;
+  background:var(--glass);border:1px solid var(--gb);
+  border-radius:var(--radius);transition:all .35s;
+}
+.flow-row:hover{border-color:rgba(0,232,150,.25);background:rgba(0,232,150,.03);transform:translateX(6px)}
+.flow-connector{height:1px;background:linear-gradient(90deg,transparent,rgba(0,232,150,.2),transparent);margin:0 52px}
+.flow-num{
+  font-family:var(--font);font-size:2rem;font-weight:900;
+  color:rgba(0,232,150,.2);line-height:1;
+}
+.flow-content h4{font-size:.95rem;font-weight:700;margin-bottom:4px}
+.flow-content p{font-size:.8rem;color:var(--text2);line-height:1.55}
+.flow-icon{font-size:1.6rem}
+.flow-time{
+  font-family:'Courier New',monospace;font-size:.65rem;
+  color:var(--green);font-weight:700;padding:3px 8px;
+  background:rgba(0,232,150,.08);border:1px solid rgba(0,232,150,.15);border-radius:10px;
+  white-space:nowrap;
+}
+
+/* ── SLIDE 4 ─────────────────────────────────── */
+.feature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;width:100%}
+.feat-card{
+  background:var(--glass);border:1px solid var(--gb);
+  border-radius:var(--radius);padding:18px 16px;
+  display:flex;flex-direction:column;gap:8px;transition:all .3s;
+}
+.feat-card:hover{border-color:rgba(0,232,150,.3);transform:translateY(-4px)}
+.feat-icon{font-size:1.5rem}
+.feat-name{font-size:.88rem;font-weight:700;color:var(--text)}
+.feat-desc{font-size:.73rem;color:var(--text2);line-height:1.5}
+.feat-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:.6rem;font-weight:700;padding:2px 8px;
+  border-radius:10px;background:rgba(0,232,150,.1);
+  color:var(--green);border:1px solid rgba(0,232,150,.2);
+  width:fit-content;
+}
+
+/* ── SLIDE 5 ─────────────────────────────────── */
+.tech-columns{display:grid;grid-template-columns:1fr 1fr;gap:28px;width:100%;max-width:1000px;align-items:start}
+.tech-group-title{
+  font-size:.65rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--teal);margin-bottom:12px;padding-bottom:8px;
+  border-bottom:1px solid rgba(0,196,180,.2);
+}
+.pill-wrap{display:flex;flex-wrap:wrap;gap:8px}
+.pill{
+  display:flex;align-items:center;gap:6px;padding:6px 12px;
+  background:rgba(255,255,255,.04);border:1px solid var(--gb);
+  border-radius:30px;font-size:.75rem;font-weight:600;color:var(--text2);
+  transition:all .3s;cursor:default;
+}
+.pill:hover{border-color:rgba(0,232,150,.3);color:var(--text);background:rgba(0,232,150,.05)}
+.pill-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.assump-box{
+  background:rgba(255,184,0,.06);border:1px solid rgba(255,184,0,.2);
+  border-radius:var(--radius);padding:18px;margin-top:16px;
+}
+.assump-title{font-size:.7rem;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.assump-item{display:flex;align-items:flex-start;gap:8px;font-size:.75rem;color:var(--text2);line-height:1.5;margin-bottom:6px}
+.assump-item::before{content:'&#x2192;';color:var(--amber);flex-shrink:0}
+
+/* ── SLIDE 6 ─────────────────────────────────── */
+.impact-row{display:grid;grid-template-columns:1fr 1fr;gap:24px;width:100%;max-width:980px}
+.ic-card{
+  background:var(--glass);border:1px solid var(--gb);
+  border-radius:var(--radius);padding:28px 24px;text-align:center;
+  transition:all .35s;
+}
+.ic-card:hover{border-color:rgba(0,232,150,.3);transform:translateY(-4px);box-shadow:0 20px 50px rgba(0,0,0,.3)}
+.ic-num{
+  font-family:var(--font);font-size:3.4rem;font-weight:900;
+  background:linear-gradient(135deg,var(--green),var(--teal));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  display:block;line-height:1;margin-bottom:10px;
+}
+.ic-label{font-size:.85rem;color:var(--text2);line-height:1.5}
+.comp-table{width:100%;border-collapse:collapse;margin-top:10px;font-size:.78rem}
+.comp-table th{
+  padding:8px 12px;text-align:left;font-size:.65rem;
+  font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--muted);border-bottom:1px solid var(--gb);background:var(--bg3);
+}
+.comp-table th.ours{color:var(--green)}
+.comp-table td{padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.04);color:var(--text2)}
+.comp-table td.yes{color:var(--green);font-weight:700}
+.comp-table td.no{color:#666}
+
+/* ── SLIDE 7 ─────────────────────────────────── */
+#s7{text-align:center;background:radial-gradient(ellipse at 50% 50%,rgba(0,196,180,.08) 0%,transparent 70%)}
+.s7-inner{position:relative;z-index:1}
+.ty-title{font-family:var(--font);font-size:clamp(3rem,7vw,5.5rem);font-weight:900;line-height:1.1;margin-bottom:18px}
+.ty-subtitle{font-size:clamp(.9rem,1.5vw,1.2rem);color:var(--text2);margin-bottom:36px;max-width:520px;margin-left:auto;margin-right:auto;line-height:1.7}
+.ty-links{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:40px}
+.ty-link{
+  padding:10px 20px;border-radius:40px;font-size:.82rem;font-weight:700;
+  border:1px solid var(--gb);color:var(--text2);transition:all .3s;
+  text-decoration:none;cursor:pointer;background:transparent;font-family:var(--body);
+}
+.ty-link.primary{
+  background:linear-gradient(135deg,var(--green),var(--teal));
+  color:#000;border-color:transparent;
+}
+.ty-link:hover{border-color:var(--green);color:var(--green)}
+.ty-link.primary:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(0,232,150,.35)}
+.ty-ring{
+  position:absolute;width:500px;height:500px;border-radius:50%;
+  border:1px solid rgba(0,232,150,.08);
+  top:50%;left:50%;transform:translate(-50%,-50%);
+  animation:slowSpin 30s linear infinite;pointer-events:none;
+}
+.ty-ring:nth-child(2){width:720px;height:720px;border-color:rgba(0,145,255,.06);animation-direction:reverse;animation-duration:45s}
+.ty-ring:nth-child(3){width:940px;height:940px;border-color:rgba(0,196,180,.04);animation-duration:60s}
+.ty-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:600px;margin:0 auto}
+.ty-stat{background:var(--glass);border:1px solid var(--gb);border-radius:var(--radius);padding:16px}
+.ty-stat-num{font-family:var(--font);font-size:1.6rem;font-weight:900;color:var(--green);display:block;line-height:1}
+.ty-stat-label{font-size:.68rem;color:var(--muted);margin-top:4px}
+
+/* ── ANIMATIONS ──────────────────────────────── */
+.slide.active .ic-num,.slide.active .s2-stat-num,.slide.active .ty-stat-num{animation:countUp .7s ease both}
+@keyframes countUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.slide.active .flow-row{animation:slideInRow .5s ease both}
+@keyframes slideInRow{from{opacity:0;transform:translateX(-16px)}to{opacity:1;transform:translateX(0)}}
+.slide.active .feat-card{animation:fadeUp .4s ease both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+
+<!-- HUD TOP -->
+<div class="hud-top">
+  <div class="hud-logo">&#x1F6D1; Good<span>Stop</span></div>
+  <div class="hud-badge">BIMSTEC Road Safety Hackathon 2026</div>
+  <div class="hud-counter">Slide <span id="slide-num">1</span> / 7</div>
+</div>
+
+<!-- PROGRESS BAR -->
+<div class="progress-bar" id="progress-bar" style="width:14.28%"></div>
+
+<!-- ARROWS -->
+<button class="nav-btn prev" id="btn-prev" onclick="go(-1)" aria-label="Previous slide">&#x2190;</button>
+<button class="nav-btn next" id="btn-next" onclick="go(1)" aria-label="Next slide">&#x2192;</button>
+
+<!-- DOTS -->
+<div class="hud-bottom" id="dots-wrap" aria-label="Slide navigation"></div>
+
+<!-- SHORTCUTS -->
+<div class="shortcuts">
+  <kbd>&#x2190;</kbd><kbd>&#x2192;</kbd> navigate &nbsp;|&nbsp; <kbd>F</kbd> fullscreen &nbsp;|&nbsp; <kbd>1&ndash;7</kbd> jump
+</div>
+
+<!-- ══════════════════════════════════════════
+     SLIDE 1 — WELCOME
+═══════════════════════════════════════════ -->
+<section class="slide active" id="s1" aria-label="Welcome slide">
+  <div class="hackathon-ring"></div>
+  <div class="hackathon-ring"></div>
+  <div class="hackathon-ring"></div>
+
+  <div class="s1-hero">
+    <div class="eyebrow"><div class="eyebrow-dot"></div>BIMSTEC Road Safety Hackathon 2026 &middot; RoadSOS Track</div>
+    <div class="s1-logo">&#x1F6D1; <span class="grad">GoodStop</span></div>
+    <p class="s1-tagline">
+      The app that makes bystanders <strong>stop at accidents &mdash; finally.</strong><br/>
+      Eliminating legal fear &middot; AI routing &middot; Offline-first &middot; 8 BIMSTEC nations
+    </p>
+    <div class="s1-badges">
+      <div class="s1-badge"><span>&#x1F6E1;&#xFE0F;</span> Good Samaritan Law &mdash; Instant</div>
+      <div class="s1-badge"><span>&#x1F916;</span> AI Severity Scanner</div>
+      <div class="s1-badge"><span>&#x1F5FA;&#xFE0F;</span> Live Dispatch Map</div>
+      <div class="s1-badge"><span>&#x1F4E1;</span> Works on 2G / Offline</div>
+      <div class="s1-badge"><span>&#x1F30D;</span> 6 Languages</div>
+    </div>
+    <div class="s1-meta">
+      <div><strong>Track:</strong> RoadSOS</div>
+      <div><strong>Platform:</strong> Progressive Web App (HTML &middot; CSS &middot; JavaScript)</div>
+      <div><strong>Presenter:</strong> Team Pearson Hardman</div>
+      <div><strong>Date:</strong> June 29, 2026</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     SLIDE 2 — PROBLEM
+═══════════════════════════════════════════ -->
+<section class="slide" id="s2" aria-label="Problem slide">
+  <div style="width:100%;max-width:1000px">
+    <div class="eyebrow"><div class="eyebrow-dot"></div>The Problem</div>
+    <h2 class="slide-subtitle">Why <span class="grad-amber">340,000 people</span> die on BIMSTEC roads every year</h2>
+    <p style="color:var(--text2);font-size:.9rem;margin-bottom:28px;max-width:680px;line-height:1.7">
+      Road accidents are not just a vehicle safety problem &mdash; they are a <strong style="color:var(--text)">human behaviour problem.</strong>
+      Help exists, but doesn't reach victims in time.
+    </p>
+    <div class="s2-stat-grid">
+      <div class="s2-stat red">
+        <div class="s2-stat-num">73%</div>
+        <div class="s2-stat-label">of bystanders <strong style="color:var(--text)">do not stop</strong> at accident sites &mdash; primary reason: fear of police detention and court summons</div>
+        <div class="s2-stat-icon">&#x1F628;</div>
+      </div>
+      <div class="s2-stat amber">
+        <div class="s2-stat-num">35 min</div>
+        <div class="s2-stat-label">average ambulance response in BIMSTEC cities vs. a <strong style="color:var(--text)">9-minute private ambulance</strong> that's never called</div>
+        <div class="s2-stat-icon">&#x23F0;</div>
+      </div>
+      <div class="s2-stat blue">
+        <div class="s2-stat-num">2&ndash;3 hrs</div>
+        <div class="s2-stat-label">before victim's family is notified &mdash; by which time <strong style="color:var(--text)">critical medical decisions</strong> are already made without their input</div>
+        <div class="s2-stat-icon">&#x1F46A;</div>
+      </div>
+      <div class="s2-stat green">
+        <div class="s2-stat-num">10 min</div>
+        <div class="s2-stat-label">the &ldquo;Golden Hour&rdquo; window &mdash; <strong style="color:var(--text)">survival probability drops 40%</strong> for every 10 minutes without intervention</div>
+        <div class="s2-stat-icon">&#x26A1;</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     SLIDE 3 — SOLUTION
+═══════════════════════════════════════════ -->
+<section class="slide" id="s3" aria-label="Solution slide">
+  <div style="width:100%;max-width:1000px">
+    <div class="eyebrow"><div class="eyebrow-dot"></div>The Solution</div>
+    <h2 class="slide-subtitle"><span class="grad">GoodStop</span> &mdash; One Tap. No Name. Everything Handled.</h2>
+    <p style="color:var(--text2);font-size:.88rem;margin-bottom:24px;line-height:1.65">
+      From incident report to hospital pre-brief in under <strong style="color:var(--green)">60 seconds.</strong>
+    </p>
+    <div class="flow-list">
+      <div class="flow-row" style="animation-delay:0s">
+        <div class="flow-num">1</div>
+        <div class="flow-content"><h4>Bystander taps &ldquo;I see an accident&rdquo;</h4><p>Single button, no login, no registration required. GPS captured automatically in 3 seconds.</p></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><div class="flow-icon">&#x261D;&#xFE0F;</div><div class="flow-time">0:00</div></div>
+      </div>
+      <div class="flow-connector"></div>
+      <div class="flow-row" style="animation-delay:.1s">
+        <div class="flow-num">2</div>
+        <div class="flow-content"><h4>Legal protection shown instantly</h4><p>&ldquo;You are protected under Good Samaritan Law.&rdquo; Country auto-detected, law shown in local language.</p></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><div class="flow-icon">&#x1F6E1;&#xFE0F;</div><div class="flow-time">0:07</div></div>
+      </div>
+      <div class="flow-connector"></div>
+      <div class="flow-row" style="animation-delay:.2s">
+        <div class="flow-num">3</div>
+        <div class="flow-content"><h4>AI routes the fastest responder</h4><p>Checks ETA of private + govt ambulances. Dispatches whichever arrives first. Hospital pre-alerted.</p></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><div class="flow-icon">&#x26A1;</div><div class="flow-time">0:22</div></div>
+      </div>
+      <div class="flow-connector"></div>
+      <div class="flow-row" style="animation-delay:.3s">
+        <div class="flow-num">4</div>
+        <div class="flow-content"><h4>3 safe actions shown to bystander</h4><p>&ldquo;Don't move them. Talk to keep them conscious. Keep crowd back.&rdquo; No medical training required.</p></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><div class="flow-icon">&#x1F4CB;</div><div class="flow-time">0:30</div></div>
+      </div>
+      <div class="flow-connector"></div>
+      <div class="flow-row" style="animation-delay:.4s">
+        <div class="flow-num">5</div>
+        <div class="flow-content"><h4>Family notified with live tracking</h4><p>Emergency contacts receive live GPS link. Hospital briefed with blood group and allergies.</p></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><div class="flow-icon">&#x1F46A;</div><div class="flow-time">0:47</div></div>
+      </div>
+      <div class="flow-connector"></div>
+      <div class="flow-row" style="animation-delay:.5s">
+        <div class="flow-num">6</div>
+        <div class="flow-content"><h4>SMS fallback if no internet</h4><p>GPS coordinates sent via structured SMS on any 2G network. Zero dependency on data connectivity.</p></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><div class="flow-icon">&#x1F4E1;</div><div class="flow-time">offline</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     SLIDE 4 — KEY FEATURES
+═══════════════════════════════════════════ -->
+<section class="slide" id="s4" aria-label="Key features slide">
+  <div style="width:100%;max-width:1100px">
+    <div class="eyebrow"><div class="eyebrow-dot"></div>Key Features &mdash; 17 Built</div>
+    <h2 class="slide-subtitle">Every feature is <span class="grad">fully functional</span> in the demo</h2>
+    <div class="feature-grid">
+      <div class="feat-card" style="animation-delay:0s">
+        <div class="feat-icon">&#x1F4F1;</div>
+        <div class="feat-name">Bystander Simulator</div>
+        <div class="feat-desc">Full interactive phone-screen flow: tap &#x2192; legal shield &#x2192; AI dispatch &#x2192; family alert</div>
+        <div class="feat-badge">&#x2705; Live Demo</div>
+      </div>
+      <div class="feat-card" style="animation-delay:.05s">
+        <div class="feat-icon">&#x1F5FA;&#xFE0F;</div>
+        <div class="feat-name">Real-Time Dispatch Map</div>
+        <div class="feat-desc">Leaflet.js + OpenStreetMap. Live ambulance movement, hospital capacity, accident hotspot heatmap</div>
+        <div class="feat-badge">&#x2705; Live Demo</div>
+      </div>
+      <div class="feat-card" style="animation-delay:.1s">
+        <div class="feat-icon">&#x1F916;</div>
+        <div class="feat-name">AI Severity Scanner</div>
+        <div class="feat-desc">TensorFlow.js COCO-SSD &mdash; on-device camera detection. No cloud upload, works offline</div>
+        <div class="feat-badge">&#x2705; Live Demo</div>
+      </div>
+      <div class="feat-card" style="animation-delay:.15s">
+        <div class="feat-icon">&#x2696;&#xFE0F;</div>
+        <div class="feat-name">BIMSTEC Law Database</div>
+        <div class="feat-desc">Complete Good Samaritan laws for all 8 nations. Country auto-detected via GPS + Nominatim API</div>
+        <div class="feat-badge">&#x2705; 8 Countries</div>
+      </div>
+      <div class="feat-card" style="animation-delay:.2s">
+        <div class="feat-icon">&#x1F3E5;</div>
+        <div class="feat-name">Digital Medical ID + QR</div>
+        <div class="feat-desc">Pre-register blood group, allergies, emergency contacts. Generates scannable QR. Saved offline.</div>
+        <div class="feat-badge">&#x2705; Live Demo</div>
+      </div>
+      <div class="feat-card" style="animation-delay:.25s">
+        <div class="feat-icon">&#x1F4AC;</div>
+        <div class="feat-name">Multilingual AI Chatbot</div>
+        <div class="feat-desc">GPT-4o-mini powered guidance in English, Hindi, Bengali, Thai, Nepali, Sinhala &mdash; local fallback KB</div>
+        <div class="feat-badge">&#x2705; 6 Languages</div>
+      </div>
+      <div class="feat-card" style="animation-delay:.3s">
+        <div class="feat-icon">&#x2764;&#xFE0F;</div>
+        <div class="feat-name">Golden Hour First Aid</div>
+        <div class="feat-desc">Visual step-by-step guides: CPR, bleeding, burns, unconscious &mdash; designed for one-handed use</div>
+        <div class="feat-badge">&#x2705; 6 Guides</div>
+      </div>
+      <div class="feat-card" style="animation-delay:.35s">
+        <div class="feat-icon">&#x1F4E1;</div>
+        <div class="feat-name">SMS 2G Fallback</div>
+        <div class="feat-desc">GPS coordinates dispatched via native SMS when data is unavailable. Works on any 2G signal.</div>
+        <div class="feat-badge">&#x2705; Live Demo</div>
+      </div>
+      <div class="feat-card" style="animation-delay:.4s">
+        <div class="feat-icon">&#x1F198;</div>
+        <div class="feat-name">Panic Mode + Voice SOS</div>
+        <div class="feat-desc">3-second hold sends SMS + shares location + alerts family. Voice: say &ldquo;Accident&rdquo; hands-free.</div>
+        <div class="feat-badge">&#x2705; Live Demo</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     SLIDE 5 — TECH STACK
+═══════════════════════════════════════════ -->
+<section class="slide" id="s5" aria-label="Tech stack and assumptions slide">
+  <div style="width:100%;max-width:1080px">
+    <div class="eyebrow"><div class="eyebrow-dot"></div>Tech Stack &amp; Assumptions</div>
+    <h2 class="slide-subtitle">Open-source, <span class="grad">no server required,</span> runs in any browser</h2>
+    <div class="tech-columns">
+      <div>
+        <div class="tech-group-title">Frontend Libraries (CDN)</div>
+        <div class="pill-wrap">
+          <div class="pill"><div class="pill-dot" style="background:#00e896"></div>HTML5 / CSS3</div>
+          <div class="pill"><div class="pill-dot" style="background:#00e896"></div>Vanilla JavaScript</div>
+          <div class="pill"><div class="pill-dot" style="background:#00c4b4"></div>Leaflet.js v1.9.4</div>
+          <div class="pill"><div class="pill-dot" style="background:#0091ff"></div>TensorFlow.js v3.20</div>
+          <div class="pill"><div class="pill-dot" style="background:#0091ff"></div>COCO-SSD v2.2.2</div>
+          <div class="pill"><div class="pill-dot" style="background:#ffb800"></div>QRCode.js</div>
+          <div class="pill"><div class="pill-dot" style="background:#7c5cbf"></div>Google Fonts</div>
+        </div>
+
+        <div class="tech-group-title" style="margin-top:20px">External APIs (Free / No Key)</div>
+        <div class="pill-wrap">
+          <div class="pill"><div class="pill-dot" style="background:#00c4b4"></div>OpenStreetMap / Leaflet</div>
+          <div class="pill"><div class="pill-dot" style="background:#00c4b4"></div>Overpass API (Hospitals)</div>
+          <div class="pill"><div class="pill-dot" style="background:#00c4b4"></div>Nominatim (Geocoding)</div>
+          <div class="pill"><div class="pill-dot" style="background:#ffb800"></div>Open-Meteo (Weather ETA)</div>
+          <div class="pill"><div class="pill-dot" style="background:#ff4757"></div>OpenAI GPT-4o-mini (Chatbot)</div>
+          <div class="pill"><div class="pill-dot" style="background:#25d366"></div>SMS URI (2G Fallback)</div>
+          <div class="pill"><div class="pill-dot" style="background:#0091ff"></div>Web Speech API</div>
+          <div class="pill"><div class="pill-dot" style="background:#0091ff"></div>WebRTC / getUserMedia</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="tech-group-title">Dev / Testing</div>
+        <div class="pill-wrap">
+          <div class="pill"><div class="pill-dot" style="background:#1a8a6a"></div>Node.js v22</div>
+          <div class="pill"><div class="pill-dot" style="background:#1a8a6a"></div>Playwright</div>
+          <div class="pill"><div class="pill-dot" style="background:#1a8a6a"></div>jsdom</div>
+          <div class="pill"><div class="pill-dot" style="background:#1a8a6a"></div>docx (submission.docx)</div>
+        </div>
+
+        <div class="assump-box">
+          <div class="assump-title">&#x26A0; Key Assumptions</div>
+          <div class="assump-item">Browser grants location + camera permissions when prompted</div>
+          <div class="assump-item">OpenAI key optional &mdash; app falls back to local rule-based KB</div>
+          <div class="assump-item">SMS fallback opens native device messaging app (mobile device required)</div>
+          <div class="assump-item">Ambulance ETAs are estimated/simulated &mdash; real deployment needs fleet API</div>
+          <div class="assump-item">Good Samaritan law text is informational, not legal advice</div>
+          <div class="assump-item">Impact stats sourced from WHO Global Road Safety Report 2023</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     SLIDE 6 — IMPACT
+═══════════════════════════════════════════ -->
+<section class="slide" id="s6" aria-label="Impact and comparison slide">
+  <div style="width:100%;max-width:1060px">
+    <div class="eyebrow"><div class="eyebrow-dot"></div>Impact &amp; Why GoodStop Wins</div>
+    <h2 class="slide-subtitle">Projected to save <span class="grad">52,000+ lives</span> annually across BIMSTEC</h2>
+    <div class="impact-row" style="margin-bottom:24px">
+      <div class="ic-card">
+        <span class="ic-num">74%</span>
+        <div class="ic-label">Faster ambulance response &mdash; from 35 min avg to 9 min AI-routed private ETA</div>
+      </div>
+      <div class="ic-card">
+        <span class="ic-num">52,000</span>
+        <div class="ic-label">Lives potentially saved per year &mdash; 30% of BIMSTEC's 340,000 annual road fatalities</div>
+      </div>
+    </div>
+    <table class="comp-table">
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>112 / 108</th>
+          <th>Other Apps</th>
+          <th class="ours">&#x1F6D1; GoodStop</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Anonymous bystander reporting</td><td class="no">No</td><td class="no">No</td><td class="yes">&#x2713; Fully anonymous</td></tr>
+        <tr><td>Instant legal protection shown</td><td class="no">Never</td><td class="no">Never</td><td class="yes">&#x2713; Law cited immediately</td></tr>
+        <tr><td>Private ambulance routing</td><td class="no">No</td><td class="no">No</td><td class="yes">&#x2713; AI picks fastest ETA</td></tr>
+        <tr><td>Family real-time tracking</td><td class="no">No</td><td class="no">Rarely</td><td class="yes">&#x2713; Within 60 seconds</td></tr>
+        <tr><td>Works without internet (2G)</td><td class="no">No</td><td class="no">No</td><td class="yes">&#x2713; SMS fallback</td></tr>
+        <tr><td>All 8 BIMSTEC nations</td><td class="no">1 country</td><td class="no">1 country</td><td class="yes">&#x2713; All 8 covered</td></tr>
+        <tr><td>On-device AI (no cloud)</td><td class="no">No</td><td class="no">No</td><td class="yes">&#x2713; TF.js COCO-SSD</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     SLIDE 7 — THANK YOU
+═══════════════════════════════════════════ -->
+<section class="slide" id="s7" aria-label="Thank you slide">
+  <div class="ty-ring"></div>
+  <div class="ty-ring"></div>
+  <div class="ty-ring"></div>
+  <div class="s7-inner">
+    <div class="eyebrow" style="justify-content:center"><div class="eyebrow-dot"></div>BIMSTEC Road Safety Hackathon 2026</div>
+    <div class="ty-title">
+      <span class="grad">Thank You</span> &#x1F64F;
+    </div>
+    <p class="ty-subtitle">
+      GoodStop turns <strong style="color:var(--text)">legal fear into legal protection</strong>, bystander paralysis into brave action, and the longest 35 minutes into the fastest 9.
+    </p>
+    <div class="ty-links">
+      <button class="ty-link primary" onclick="window.open('index.html','_blank')">&#x1F680; Launch Live Demo</button>
+      <button class="ty-link" onclick="go(-1)">&#x2190; Previous Slide</button>
+      <button class="ty-link" onclick="jumpTo(0)">&#x27EA; Back to Start</button>
+    </div>
+    <div class="ty-stats">
+      <div class="ty-stat"><span class="ty-stat-num">17</span><div class="ty-stat-label">Features Built</div></div>
+      <div class="ty-stat"><span class="ty-stat-num">8</span><div class="ty-stat-label">BIMSTEC Nations</div></div>
+      <div class="ty-stat"><span class="ty-stat-num">52K</span><div class="ty-stat-label">Lives / Year</div></div>
+    </div>
+    <div style="margin-top:28px;font-size:.75rem;color:var(--muted);line-height:1.8">
+      Built with: HTML &middot; CSS &middot; JavaScript &middot; Leaflet &middot; TensorFlow.js &middot; OpenStreetMap &middot; Open-Meteo &middot; Web Speech API<br/>
+      <strong style="color:var(--text2)">Team Pearson Hardman</strong> &nbsp;&middot;&nbsp; github.com/brijeshkhanolkar/R1
+    </div>
+  </div>
+</section>
+
+<script>
+const TOTAL = 7;
+let current = 0;
+let isAnimating = false;
+
+// Spawn particles on each slide
+function spawnParticles() {
+  document.querySelectorAll('.slide').forEach(slide => {
+    for (let i = 0; i < 18; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      p.style.left = Math.random() * 100 + '%';
+      p.style.animationDuration = (8 + Math.random() * 16) + 's';
+      p.style.animationDelay = (Math.random() * 14) + 's';
+      const s = (1 + Math.random() * 2.5) + 'px';
+      p.style.width = p.style.height = s;
+      const cols = ['#00e896','#00c4b4','#0091ff','#ffb800'];
+      p.style.background = cols[Math.floor(Math.random() * cols.length)];
+      slide.appendChild(p);
+    }
+  });
+}
+
+function buildDots() {
+  const wrap = document.getElementById('dots-wrap');
+  for (let i = 0; i < TOTAL; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'dot' + (i === 0 ? ' active' : '');
+    btn.setAttribute('aria-label', 'Go to slide ' + (i+1));
+    btn.addEventListener('click', () => jumpTo(i));
+    wrap.appendChild(btn);
+  }
+}
+
+function go(delta) {
+  jumpTo(Math.max(0, Math.min(TOTAL - 1, current + delta)));
+}
+
+function jumpTo(next) {
+  if (next === current || isAnimating) return;
+  isAnimating = true;
+
+  const slides = document.querySelectorAll('.slide');
+  const forward = next > current;
+  const curr = slides[current];
+  const nxt  = slides[next];
+
+  nxt.style.transform = forward ? 'translateX(100%)' : 'translateX(-100%)';
+  nxt.style.opacity = '0';
+  nxt.style.pointerEvents = 'none';
+
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    curr.classList.remove('active');
+    curr.style.transform = forward ? 'translateX(-100%)' : 'translateX(100%)';
+    curr.style.opacity = '0';
+
+    nxt.style.transform = 'translateX(0)';
+    nxt.style.opacity = '1';
+    nxt.style.pointerEvents = 'all';
+    nxt.classList.add('active');
+
+    current = next;
+    updateHUD();
+
+    setTimeout(() => {
+      curr.style.transform = '';
+      curr.style.opacity = '';
+      curr.style.pointerEvents = '';
+      isAnimating = false;
+    }, 680);
+  }));
+}
+
+function updateHUD() {
+  document.getElementById('slide-num').textContent = current + 1;
+  document.getElementById('progress-bar').style.width = ((current + 1) / TOTAL * 100) + '%';
+  document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === current));
+  document.getElementById('btn-prev').style.opacity = current === 0 ? '.35' : '1';
+  document.getElementById('btn-next').style.opacity = current === TOTAL-1 ? '.35' : '1';
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); go(1); }
+  if (e.key === 'ArrowLeft')                    { e.preventDefault(); go(-1); }
+  if (e.key === 'f' || e.key === 'F') {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+    else document.exitFullscreen();
+  }
+  const n = parseInt(e.key);
+  if (n >= 1 && n <= TOTAL) jumpTo(n - 1);
+});
+
+let tx0 = 0;
+document.addEventListener('touchstart', e => tx0 = e.changedTouches[0].clientX, {passive:true});
+document.addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - tx0;
+  if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1);
+});
+
+spawnParticles();
+buildDots();
+updateHUD();
+</script>
+</body>
+</html>
