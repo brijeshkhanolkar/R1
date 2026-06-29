@@ -371,6 +371,48 @@
             <div class="hospital-status-header">Hospital Capacity</div>
             <!-- populated by JS -->
           </div>
+
+          <!-- LIVE WEATHER WIDGET -->
+          <div id="weather-widget" style="margin-top:14px;background:rgba(0,145,255,0.06);border:1px solid rgba(0,145,255,0.2);border-radius:14px;padding:14px;display:none;">
+            <div style="font-size:0.62rem;font-weight:800;letter-spacing:0.08em;color:#0091ff;text-transform:uppercase;margin-bottom:10px;">⛅ Live Weather Conditions</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <div>
+                <div id="wx-temp" style="font-size:1.6rem;font-weight:900;color:#f0f6ff;line-height:1;">--°C</div>
+                <div id="wx-desc" style="font-size:0.72rem;color:#8ba4c0;margin-top:2px;">Fetching...</div>
+              </div>
+              <div id="wx-icon" style="font-size:2.2rem;">🌡️</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+              <div style="background:rgba(0,0,0,0.2);border-radius:8px;padding:7px 10px;">
+                <div style="font-size:0.58rem;color:#4a6a8a;text-transform:uppercase;letter-spacing:0.06em;">Wind</div>
+                <div id="wx-wind" style="font-size:0.82rem;font-weight:700;color:#f0f6ff;margin-top:2px;">-- km/h</div>
+              </div>
+              <div style="background:rgba(0,0,0,0.2);border-radius:8px;padding:7px 10px;">
+                <div style="font-size:0.58rem;color:#4a6a8a;text-transform:uppercase;letter-spacing:0.06em;">ETA Impact</div>
+                <div id="wx-eta-impact" style="font-size:0.82rem;font-weight:700;color:#00e896;margin-top:2px;">+0 min</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ROAD RISK SCORE -->
+          <div id="risk-score-card" style="margin-top:12px;background:rgba(255,71,87,0.06);border:1px solid rgba(255,71,87,0.2);border-radius:14px;padding:14px;display:none;">
+            <div style="font-size:0.62rem;font-weight:800;letter-spacing:0.08em;color:#ff4757;text-transform:uppercase;margin-bottom:10px;">📊 Real-Time Road Risk Index</div>
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+              <div style="position:relative;width:60px;height:60px;">
+                <svg viewBox="0 0 60 60" style="width:60px;height:60px;transform:rotate(-90deg);">
+                  <circle cx="30" cy="30" r="24" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="6"/>
+                  <circle id="risk-arc" cx="30" cy="30" r="24" fill="none" stroke="#ff4757" stroke-width="6" stroke-linecap="round"
+                    stroke-dasharray="150.8" stroke-dashoffset="150.8" style="transition:stroke-dashoffset 1.2s ease;"/>
+                </svg>
+                <div id="risk-val" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-size:0.85rem;font-weight:900;color:#f0f6ff;">--</div>
+              </div>
+              <div>
+                <div id="risk-label" style="font-size:0.9rem;font-weight:800;color:#ff4757;">Calculating...</div>
+                <div id="risk-factors" style="font-size:0.68rem;color:#8ba4c0;margin-top:3px;line-height:1.5;">GPS · Weather · Time of day</div>
+              </div>
+            </div>
+            <div id="risk-breakdown" style="display:flex;flex-direction:column;gap:4px;"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -900,7 +942,7 @@
       <div class="footer-tags">
         <span class="footer-tag">Road Safety Hackathon 2026</span>
         <span class="footer-tag">BIMSTEC RoadSOS Track</span>
-        <span class="footer-tag">Made by Brijesh</span>
+        <span class="footer-tag">Team Pearson Hardman</span>
       </div>
     </div>
   </footer>
