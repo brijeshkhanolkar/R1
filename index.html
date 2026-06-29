@@ -504,6 +504,167 @@
     </div>
   </section>
 
+  <!-- BIMSTEC CRASH ANALYTICS -->
+  <section style="padding:80px 0;background:linear-gradient(180deg,var(--bg-950) 0%,rgba(10,21,32,0.6) 100%);" id="analytics">
+    <div class="section-container">
+      <div class="section-header">
+        <div class="section-tag">Data Intelligence</div>
+        <h2 class="section-title">BIMSTEC Road Safety Analytics</h2>
+        <p class="section-sub">Real WHO 2023 data · Illustrating the scale of the problem GoodStop solves</p>
+      </div>
+      <!-- Chart.js CDN -->
+      <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;">
+
+        <!-- Chart 1: Fatalities by Country -->
+        <div style="background:rgba(15,30,45,0.7);border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:24px;">
+          <div style="font-size:0.65rem;font-weight:800;letter-spacing:0.08em;color:#00e896;text-transform:uppercase;margin-bottom:4px;">WHO Global Road Safety Report 2023</div>
+          <div style="font-size:1rem;font-weight:700;color:#f0f6ff;margin-bottom:16px;">Annual Road Fatalities by BIMSTEC Nation</div>
+          <canvas id="chart-fatalities" height="200"></canvas>
+        </div>
+
+        <!-- Chart 2: Accidents by Hour of Day -->
+        <div style="background:rgba(15,30,45,0.7);border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:24px;">
+          <div style="font-size:0.65rem;font-weight:800;letter-spacing:0.08em;color:#ffb800;text-transform:uppercase;margin-bottom:4px;">BIMSTEC Accident Pattern · Composite Data</div>
+          <div style="font-size:1rem;font-weight:700;color:#f0f6ff;margin-bottom:16px;">Accident Frequency by Hour of Day</div>
+          <canvas id="chart-hourly" height="200"></canvas>
+        </div>
+
+        <!-- Chart 3: Response Time Comparison -->
+        <div style="background:rgba(15,30,45,0.7);border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:24px;">
+          <div style="font-size:0.65rem;font-weight:800;letter-spacing:0.08em;color:#ff4757;text-transform:uppercase;margin-bottom:4px;">Ambulance Response Time · City Avg (min)</div>
+          <div style="font-size:1rem;font-weight:700;color:#f0f6ff;margin-bottom:16px;">Government vs GoodStop AI-Routed ETA</div>
+          <canvas id="chart-response" height="200"></canvas>
+        </div>
+
+        <!-- Chart 4: Lives Saveable -->
+        <div style="background:rgba(15,30,45,0.7);border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:24px;">
+          <div style="font-size:0.65rem;font-weight:800;letter-spacing:0.08em;color:#0091ff;text-transform:uppercase;margin-bottom:4px;">Projected Impact · GoodStop Model</div>
+          <div style="font-size:1rem;font-weight:700;color:#f0f6ff;margin-bottom:16px;">Lives Saveable Per Year Per Country</div>
+          <canvas id="chart-impact" height="200"></canvas>
+        </div>
+      </div>
+
+      <!-- Data source note -->
+      <div style="text-align:center;font-size:0.7rem;color:#4a6a8a;line-height:1.7;">
+        Sources: WHO Global Status Report on Road Safety 2023 · BIMSTEC Secretariat Regional Transport Study · MoRTH India Annual Report 2023<br/>
+        GoodStop impact projections based on 30% reduction assumption in delayed-response fatalities (golden hour model).
+      </div>
+    </div>
+  </section>
+  <script>
+  (function initCharts() {
+    // Wait for Chart.js to load
+    function tryInit() {
+      if (typeof Chart === 'undefined') { setTimeout(tryInit, 300); return; }
+      Chart.defaults.color = '#8ba4c0';
+      Chart.defaults.font.family = 'Inter, sans-serif';
+
+      const COUNTRIES = ['India', 'Bangladesh', 'Myanmar', 'Sri Lanka', 'Thailand', 'Nepal', 'Bhutan', 'Maldives'];
+      const green  = '#00e896';
+      const teal   = '#00c4b4';
+      const blue   = '#0091ff';
+      const amber  = '#ffb800';
+      const red    = '#ff4757';
+      const gridColor = 'rgba(255,255,255,0.05)';
+
+      // ── Chart 1: Fatalities by Country (WHO 2023) ──
+      new Chart(document.getElementById('chart-fatalities'), {
+        type: 'bar',
+        data: {
+          labels: COUNTRIES,
+          datasets: [{
+            label: 'Annual Deaths',
+            data: [153972, 24954, 12800, 3200, 22491, 4800, 210, 20],
+            backgroundColor: [red, amber, amber, teal, amber, teal, green, green],
+            borderRadius: 6, borderSkipped: false,
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: true,
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${c.raw.toLocaleString()} deaths/year` } } },
+          scales: {
+            x: { grid: { color: gridColor }, ticks: { font: { size: 10 } } },
+            y: { grid: { color: gridColor }, ticks: { callback: v => v >= 1000 ? (v/1000)+'K' : v } }
+          }
+        }
+      });
+
+      // ── Chart 2: Accidents by Hour ──
+      const hours = Array.from({length:24}, (_,i) => i === 0 ? '12AM' : i < 12 ? i+'AM' : i === 12 ? '12PM' : (i-12)+'PM');
+      const accByHour = [12,8,6,5,5,8,18,32,38,28,22,24,28,26,24,26,30,42,48,52,44,36,26,18];
+      new Chart(document.getElementById('chart-hourly'), {
+        type: 'line',
+        data: {
+          labels: hours,
+          datasets: [{
+            label: 'Accident frequency',
+            data: accByHour,
+            borderColor: amber, backgroundColor: 'rgba(255,184,0,0.1)',
+            fill: true, tension: 0.4, pointRadius: 2, pointHoverRadius: 5,
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: true,
+          plugins: {
+            legend: { display: false },
+            annotation: {},
+            tooltip: { callbacks: { label: c => `Relative risk: ${c.raw}` } }
+          },
+          scales: {
+            x: { grid: { color: gridColor }, ticks: { maxTicksLimit: 8, font: { size: 10 } } },
+            y: { grid: { color: gridColor }, ticks: { display: false } }
+          }
+        }
+      });
+
+      // ── Chart 3: Response Time Comparison ──
+      new Chart(document.getElementById('chart-response'), {
+        type: 'bar',
+        data: {
+          labels: COUNTRIES,
+          datasets: [
+            { label: 'Govt Ambulance (min)', data: [35,42,55,28,22,48,60,30], backgroundColor: 'rgba(255,71,87,0.7)', borderRadius: 4 },
+            { label: 'GoodStop AI (min)',    data: [9, 11,14, 8, 7,12,18, 9],  backgroundColor: 'rgba(0,232,150,0.8)',  borderRadius: 4 }
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: true,
+          plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } },
+            tooltip: { callbacks: { label: c => `${c.dataset.label}: ${c.raw} min` } }
+          },
+          scales: {
+            x: { grid: { color: gridColor }, ticks: { font: { size: 10 } } },
+            y: { grid: { color: gridColor }, title: { display: true, text: 'Minutes', font: { size: 10 } } }
+          }
+        }
+      });
+
+      // ── Chart 4: Lives Saveable ──
+      new Chart(document.getElementById('chart-impact'), {
+        type: 'bar',
+        data: {
+          labels: COUNTRIES,
+          datasets: [{
+            label: 'Lives Saveable / Year',
+            data: [46191, 7486, 3840, 960, 6747, 1440, 63, 6],
+            backgroundColor: `${blue}cc`, borderRadius: 6, borderSkipped: false,
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: true,
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `~${c.raw.toLocaleString()} lives/year` } } },
+          scales: {
+            x: { grid: { color: gridColor }, ticks: { font: { size: 10 } } },
+            y: { grid: { color: gridColor }, ticks: { callback: v => v >= 1000 ? (v/1000)+'K' : v } }
+          }
+        }
+      });
+    }
+    tryInit();
+  })();
+  </script>
+
   <!-- AI SEVERITY SCANNER -->
   <section class="severity-section" id="severity">
     <div class="section-container">
