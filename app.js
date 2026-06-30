@@ -213,20 +213,49 @@ const SIM_STEPS = [
       <div class="sim-screen-inner" style="background:linear-gradient(180deg,#080d14,#050d12);">
         <div class="sim-status"><span>9:41</span><span>⬛⬛⬛ 5G</span></div>
         <div class="sim-app-content" style="gap:14px;">
-          <div style="font-family:var(--font-display);font-weight:800;font-size:1rem;color:#00e896;">📍 Locating...</div>
-          <div style="width:80px;height:80px;border-radius:50%;border:3px solid #00e896;border-top-color:transparent;animation:spin 0.8s linear infinite;"></div>
-          <div style="font-size:0.8rem;color:var(--text-secondary);">Capturing GPS coordinates</div>
+          <div style="font-family:var(--font-display);font-weight:800;font-size:1rem;color:#00e896;" id="gps-label">📍 Locating...</div>
+          <div style="position:relative;width:80px;height:80px;" id="gps-spinner-wrap">
+            <div id="gps-spinner" style="width:80px;height:80px;border-radius:50%;border:3px solid #00e896;border-top-color:transparent;animation:spin 0.8s linear infinite;"></div>
+            <div id="gps-check" style="display:none;position:absolute;inset:0;display:none;align-items:center;justify-content:center;font-size:2.2rem;">✅</div>
+          </div>
+          <div style="font-size:0.8rem;color:var(--text-secondary);" id="gps-sub">Capturing GPS coordinates</div>
           <div style="background:rgba(0,232,150,0.06);border:1px solid rgba(0,232,150,0.12);border-radius:12px;padding:12px;width:100%;text-align:left;">
             <div style="font-size:0.65rem;color:var(--accent-teal);margin-bottom:4px;">LOCATION DETECTED</div>
-            <div style="font-size:0.78rem;color:var(--text-primary);font-weight:600;">NH-48, km 28.4</div>
-            <div style="font-size:0.65rem;color:var(--text-muted);">28.4595°N, 77.0266°E · Accuracy: ±5m</div>
+            <div style="font-size:0.78rem;color:var(--text-primary);font-weight:600;" id="gps-location">NH-48, km 28.4</div>
+            <div style="font-size:0.65rem;color:var(--text-muted);" id="gps-coords">28.4595°N, 77.0266°E · Accuracy: ±5m</div>
           </div>
           <div style="font-size:0.65rem;color:var(--text-muted);border:1px solid rgba(255,255,255,0.06);padding:6px 12px;border-radius:20px;">
             🔒 No personal data transmitted
           </div>
+          <button id="gps-next-btn" onclick="simNext()" class="ms-btn" style="width:100%;display:none;margin-top:4px;">📍 Location Confirmed — Next ›</button>
         </div>
       </div>
       <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+      <script>
+        (function() {
+          // Update with real GPS if available
+          if (window.realGPS) {
+            var el = document.getElementById('gps-location');
+            var co = document.getElementById('gps-coords');
+            if (el) el.textContent = 'Your current location';
+            if (co) co.textContent = window.realGPS.lat.toFixed(4) + '°N, ' + window.realGPS.lng.toFixed(4) + '°E · Real GPS';
+          }
+          // Stop spinner after 1.5s — show checkmark and Next button
+          setTimeout(function() {
+            var spinner = document.getElementById('gps-spinner');
+            var check   = document.getElementById('gps-check');
+            var label   = document.getElementById('gps-label');
+            var sub     = document.getElementById('gps-sub');
+            var btn     = document.getElementById('gps-next-btn');
+            if (spinner) { spinner.style.animation = 'none'; spinner.style.opacity = '0'; spinner.style.transition = 'opacity 0.3s'; }
+            if (check)   { check.style.display = 'flex'; }
+            if (label)   { label.textContent = '📍 Location Locked'; }
+            if (sub)     { sub.textContent = 'GPS locked in 1.4 seconds'; }
+            if (btn)     { btn.style.display = 'block'; }
+            if (window.hapticFeedback) window.hapticFeedback.success();
+          }, 1500);
+        })();
+      </script>
     `,
     logEntry: { type: 'info', text: '<strong>Report Received</strong> — Anonymous report at NH-48, km 28.4 · GPS locked ±5m' }
   },
