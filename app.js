@@ -1199,9 +1199,48 @@ let selectedCountry = 0;
 
 function renderLawDatabase() {
   const selector = document.getElementById('country-selector');
-  const display = document.getElementById('law-display');
+  const display  = document.getElementById('law-display');
   if (!selector || !display) return;
 
+  // ── FLAG STRIP (big clickable flags above the panel) ──
+  const flagStripId = 'law-flag-strip';
+  let strip = document.getElementById(flagStripId);
+  if (!strip) {
+    strip = document.createElement('div');
+    strip.id = flagStripId;
+    strip.style.cssText = `
+      display:flex;gap:10px;flex-wrap:wrap;justify-content:center;
+      margin-bottom:20px;padding:16px 18px;
+      background:rgba(15,30,45,0.6);border:1px solid rgba(255,255,255,0.06);
+      border-radius:16px;
+    `;
+    selector.parentNode.insertBefore(strip, selector);
+  }
+
+  strip.innerHTML = bimstecLaws.map((c, i) => `
+    <button
+      onclick="selectCountry(${i})"
+      title="${c.name} — ${c.statusLabel}"
+      style="
+        display:flex;flex-direction:column;align-items:center;gap:4px;
+        background:${i === selectedCountry ? 'rgba(0,232,150,0.12)' : 'rgba(255,255,255,0.03)'};
+        border:${i === selectedCountry ? '2px solid rgba(0,232,150,0.5)' : '1px solid rgba(255,255,255,0.06)'};
+        border-radius:12px;padding:10px 14px;cursor:pointer;transition:all 0.25s;
+        ${i === selectedCountry ? 'box-shadow:0 0 16px rgba(0,232,150,0.15);' : ''}
+      "
+      onmouseover="this.style.background='rgba(0,232,150,0.08)';this.style.borderColor='rgba(0,232,150,0.3)'"
+      onmouseout="this.style.background='${i === selectedCountry ? 'rgba(0,232,150,0.12)' : 'rgba(255,255,255,0.03)'}';this.style.borderColor='${i === selectedCountry ? 'rgba(0,232,150,0.5)' : 'rgba(255,255,255,0.06)'}'">
+      <span style="font-size:2rem;line-height:1;">${c.flag}</span>
+      <span style="font-size:0.6rem;font-weight:700;color:${i === selectedCountry ? '#00e896' : '#8ba4c0'};white-space:nowrap;">${c.name}</span>
+      <span style="font-size:0.5rem;padding:1px 6px;border-radius:8px;font-weight:700;
+        background:${c.statusClass === 'active' ? 'rgba(0,232,150,0.15)' : c.statusClass === 'partial' ? 'rgba(255,184,0,0.15)' : 'rgba(255,71,87,0.15)'};
+        color:${c.statusClass === 'active' ? '#00e896' : c.statusClass === 'partial' ? '#ffb800' : '#ff4757'};
+        border:1px solid ${c.statusClass === 'active' ? 'rgba(0,232,150,0.3)' : c.statusClass === 'partial' ? 'rgba(255,184,0,0.3)' : 'rgba(255,71,87,0.3)'};
+      ">${c.statusClass === 'active' ? '✓ Law' : c.statusClass === 'partial' ? '≈ Partial' : '○ Draft'}</span>
+    </button>
+  `).join('');
+
+  // ── Existing sidebar button list (keep for mobile) ──
   selector.innerHTML = bimstecLaws.map((c, i) => `
     <button class="country-btn ${i === selectedCountry ? 'active' : ''}" onclick="selectCountry(${i})">
       <span class="country-btn-flag">${c.flag}</span>
@@ -1218,32 +1257,59 @@ function renderLawDatabase() {
 function selectCountry(idx) {
   selectedCountry = idx;
   document.querySelectorAll('.country-btn').forEach((b, i) => b.classList.toggle('active', i === idx));
-  renderCountryLaw(idx);
+  // Animate law display out then in
+  const display = document.getElementById('law-display');
+  if (display) {
+    display.style.opacity = '0';
+    display.style.transform = 'translateY(8px)';
+    setTimeout(() => {
+      renderCountryLaw(idx);
+      display.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+      display.style.opacity = '1';
+      display.style.transform = 'translateY(0)';
+    }, 180);
+  }
+  // Rebuild flag strip to update active state
+  renderLawDatabase();
 }
 
 function renderCountryLaw(idx) {
   const c = bimstecLaws[idx];
   const display = document.getElementById('law-display');
   if (!display) return;
+
+  const statusColor = c.statusClass === 'active' ? '#00e896' : c.statusClass === 'partial' ? '#ffb800' : '#ff4757';
+
   display.innerHTML = `
-    <div class="law-country-header">
-      <div class="law-country-flag">${c.flag}</div>
-      <div>
-        <div class="law-country-name">${c.name}</div>
-        <div class="law-country-status">
-          <span class="law-status-badge ${c.statusClass}">${c.statusLabel}</span>
+    <div class="law-country-header" style="display:flex;align-items:center;gap:16px;margin-bottom:16px;">
+      <div style="font-size:3.5rem;line-height:1;filter:drop-shadow(0 0 12px ${statusColor}44);">${c.flag}</div>
+      <div style="flex:1;">
+        <div style="font-size:1.4rem;font-weight:900;color:#f0f6ff;font-family:'Space Grotesk',sans-serif;">${c.name}</div>
+        <div style="margin-top:4px;">
+          <span style="font-size:0.65rem;font-weight:800;padding:3px 10px;border-radius:20px;
+            background:${statusColor}18;color:${statusColor};border:1px solid ${statusColor}44;">
+            ${c.statusClass === 'active' ? '✓ Active Law' : c.statusClass === 'partial' ? '≈ Partial Protection' : '○ Under Development'}
+          </span>
         </div>
+        <div style="font-size:0.65rem;color:#4a6a8a;margin-top:6px;font-family:monospace;line-height:1.4;">${c.citation}</div>
       </div>
     </div>
-    <div class="law-citation">${c.citation}</div>
-    <div class="law-text">${c.text}</div>
-    <div class="law-protection-list">
+    <div style="background:rgba(0,0,0,0.25);border-left:3px solid ${statusColor};border-radius:0 10px 10px 0;
+      padding:14px 16px;margin-bottom:14px;font-size:0.82rem;color:#8ba4c0;font-style:italic;line-height:1.7;">
+      ${c.text}
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
       ${c.protections.map(p => `
-        <div class="law-protect-item">
-          <span class="law-protect-icon">✓</span>
-          <span>${p}</span>
+        <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 12px;
+          background:rgba(0,232,150,0.05);border:1px solid rgba(0,232,150,0.1);border-radius:8px;">
+          <span style="color:#00e896;font-weight:900;font-size:0.85rem;margin-top:1px;flex-shrink:0;">✓</span>
+          <span style="font-size:0.78rem;color:#8ba4c0;line-height:1.5;">${p}</span>
         </div>
       `).join('')}
+    </div>
+    <div style="margin-top:14px;padding:10px 14px;background:rgba(0,145,255,0.06);border:1px solid rgba(0,145,255,0.15);
+      border-radius:10px;font-size:0.68rem;color:#4a6a8a;text-align:center;">
+      📱 GoodStop shows this law to bystanders <strong style="color:#0091ff">instantly</strong> — before they even decide whether to stop
     </div>
   `;
 }
@@ -1253,6 +1319,7 @@ const lawsObs = new IntersectionObserver((entries) => {
 }, { threshold: 0.1 });
 const lawsEl = document.getElementById('laws');
 if (lawsEl) lawsObs.observe(lawsEl);
+
 
 // ============ SMS DEMO ============
 let smsRunning = false;
@@ -2088,4 +2155,47 @@ document.addEventListener('DOMContentLoaded', () => {
     el.classList.add('reveal');
     observer.observe(el);
   });
+});
+
+// ═══════════════════════════════════════════════════
+// PWA INSTALL PROMPT
+// ═══════════════════════════════════════════════════
+let _deferredInstallPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  _deferredInstallPrompt = e;
+  // Show the Install App button in nav
+  const btn = document.getElementById('pwa-install-btn');
+  if (btn) {
+    btn.style.display = 'inline-flex';
+    btn.style.alignItems = 'center';
+    btn.style.gap = '6px';
+    // Pulse once to draw attention
+    btn.style.animation = 'pulse-green 2s ease 2';
+  }
+});
+
+window.installPWA = async function() {
+  if (!_deferredInstallPrompt) {
+    // Already installed or not supported
+    if (typeof showToast === 'function') {
+      showToast('📲 App already installed or install not available in this browser');
+    }
+    return;
+  }
+  _deferredInstallPrompt.prompt();
+  const { outcome } = await _deferredInstallPrompt.userChoice;
+  if (outcome === 'accepted') {
+    if (typeof showToast === 'function') showToast('✅ GoodStop installed to your home screen!', 3000);
+    const btn = document.getElementById('pwa-install-btn');
+    if (btn) btn.style.display = 'none';
+  }
+  _deferredInstallPrompt = null;
+};
+
+window.addEventListener('appinstalled', () => {
+  const btn = document.getElementById('pwa-install-btn');
+  if (btn) btn.style.display = 'none';
+  if (typeof showToast === 'function') showToast('🎉 GoodStop is now installed on your device!', 3000);
 });

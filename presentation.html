@@ -339,7 +339,7 @@ h2.slide-subtitle{
 
 <!-- SHORTCUTS -->
 <div class="shortcuts">
-  <kbd>&#x2190;</kbd><kbd>&#x2192;</kbd> navigate &nbsp;|&nbsp; <kbd>F</kbd> fullscreen &nbsp;|&nbsp; <kbd>1&ndash;7</kbd> jump
+  <kbd>&#x2190;</kbd><kbd>&#x2192;</kbd> navigate &nbsp;|&nbsp; <kbd>F</kbd> fullscreen &nbsp;|&nbsp; <kbd>1&ndash;8</kbd> jump
 </div>
 
 <!-- ══════════════════════════════════════════
@@ -621,9 +621,45 @@ h2.slide-subtitle{
 </section>
 
 <!-- ══════════════════════════════════════════
-     SLIDE 7 — THANK YOU
+     SLIDE 7 — WHY WE WIN
 ═══════════════════════════════════════════ -->
-<section class="slide" id="s7" aria-label="Thank you slide">
+<section class="slide" id="s7" aria-label="Why we win slide">
+  <div style="width:100%;max-width:1060px">
+    <div class="eyebrow"><div class="eyebrow-dot"></div>The Winning Argument</div>
+    <h2 class="slide-subtitle">Why <span class="grad">GoodStop wins</span> — and why every other team doesn't</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px">
+      <div style="background:rgba(0,232,150,0.06);border:1px solid rgba(0,232,150,0.2);border-radius:16px;padding:20px">
+        <div style="font-size:0.6rem;font-weight:800;letter-spacing:0.1em;color:#00e896;text-transform:uppercase;margin-bottom:8px">&#x2714; What we did differently</div>
+        <ul style="list-style:none;display:flex;flex-direction:column;gap:10px">
+          <li style="font-size:0.82rem;color:var(--text2);line-height:1.5"><strong style="color:var(--text)">We asked WHY first.</strong> Every other team builds a hospital finder. We asked why people don't call one — and answered it.</li>
+          <li style="font-size:0.82rem;color:var(--text2);line-height:1.5"><strong style="color:var(--text)">First in BIMSTEC history</strong> to show a country-specific Good Samaritan law in an app. 8 nations. Real citations. In 6 languages.</li>
+          <li style="font-size:0.82rem;color:var(--text2);line-height:1.5"><strong style="color:var(--text)">17 features. Zero backend.</strong> No server. No database. No cloud dependency. Works on 2G offline. Deployable today.</li>
+          <li style="font-size:0.82rem;color:var(--text2);line-height:1.5"><strong style="color:var(--text)">Real APIs, real data.</strong> Live GPS, real OSM hospitals, real weather, real WHO statistics. Not a mockup — a product.</li>
+        </ul>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div style="background:rgba(255,71,87,0.07);border:1px solid rgba(255,71,87,0.2);border-radius:14px;padding:16px">
+          <div style="font-size:0.6rem;font-weight:800;letter-spacing:0.1em;color:#ff4757;text-transform:uppercase;margin-bottom:6px">&#x2718; What other teams will present</div>
+          <ul style="list-style:none;display:flex;flex-direction:column;gap:6px">
+            <li style="font-size:0.78rem;color:var(--text2)">&#x2022; A hospital finder (112 already does this)</li>
+            <li style="font-size:0.78rem;color:var(--text2)">&#x2022; A chatbot that answers FAQ (no emergency integration)</li>
+            <li style="font-size:0.78rem;color:var(--text2)">&#x2022; A dashboard with no real data</li>
+            <li style="font-size:0.78rem;color:var(--text2)">&#x2022; A prototype that needs internet + backend to run</li>
+          </ul>
+        </div>
+        <div style="background:rgba(0,145,255,0.07);border:1px solid rgba(0,145,255,0.2);border-radius:14px;padding:16px">
+          <div style="font-size:0.6rem;font-weight:800;letter-spacing:0.1em;color:#0091ff;text-transform:uppercase;margin-bottom:6px">&#x2605; The judge test</div>
+          <p style="font-size:0.78rem;color:var(--text2);line-height:1.6">Can a bystander who just saw an accident use this in 10 seconds, on a 2G connection, without registering, while scared of legal consequences?<br/><strong style="color:var(--text)">GoodStop: Yes. Every other app: No.</strong></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     SLIDE 8 — THANK YOU
+═══════════════════════════════════════════ -->
+<section class="slide" id="s8" aria-label="Thank you slide">
   <div class="ty-ring"></div>
   <div class="ty-ring"></div>
   <div class="ty-ring"></div>
@@ -653,7 +689,7 @@ h2.slide-subtitle{
 </section>
 
 <script>
-const TOTAL = 7;
+const TOTAL = 8;
 let current = 0;
 let isAnimating = false;
 
