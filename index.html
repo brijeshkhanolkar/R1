@@ -139,6 +139,26 @@
         <button class="btn-hero-voice" id="hero-voice-btn" onclick="triggerVoiceSOS()">
           <span class="voice-ring-icon" id="voice-ring">🎙️</span> Voice SOS
         </button>
+        <button id="share-location-btn" onclick="shareEmergencyLocation()"
+          style="display:flex;align-items:center;gap:8px;padding:12px 20px;
+            background:rgba(0,145,255,0.12);border:1px solid rgba(0,145,255,0.35);
+            color:#0091ff;border-radius:50px;font-size:0.85rem;font-weight:700;
+            cursor:pointer;font-family:Inter,sans-serif;transition:all 0.25s;white-space:nowrap;"
+          onmouseover="this.style.background='rgba(0,145,255,0.2)'"
+          onmouseout="this.style.background='rgba(0,145,255,0.12)'"
+          title="Share your live GPS location via WhatsApp, SMS, or any app">
+          📤 Share Location
+        </button>
+      </div>
+      <!-- Crash Detection Status Badge -->
+      <div id="crash-detect-badge" style="display:none;margin-top:16px;justify-content:center;">
+        <div style="display:inline-flex;align-items:center;gap:8px;padding:7px 16px;
+          background:rgba(0,232,150,0.08);border:1px solid rgba(0,232,150,0.25);
+          border-radius:20px;font-size:0.72rem;font-weight:700;color:#00e896;">
+          <span style="width:7px;height:7px;border-radius:50%;background:#00e896;
+            animation:pulse-green 1.5s ease-in-out infinite;display:inline-block;"></span>
+          Crash Detection ACTIVE — Accelerometer monitoring
+        </div>
       </div>
     </div>
     <div class="hero-visual">

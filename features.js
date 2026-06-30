@@ -1538,3 +1538,264 @@ setTimeout(() => {
     initLiveIncidentFeed(INCIDENT.lat, INCIDENT.lng);
   }
 }, 8000);
+
+// ════════════════════════════════════════════════════
+// HAPTIC FEEDBACK SYSTEM
+// Real API: navigator.vibrate()
+// ════════════════════════════════════════════════════
+const HAPTIC = {
+  // Basic patterns
+  tap:        () => navigator.vibrate?.([30]),
+  success:    () => navigator.vibrate?.([50, 30, 50]),
+  alert:      () => navigator.vibrate?.([100, 50, 100]),
+  sos:        () => navigator.vibrate?.([200, 100, 200, 100, 400]),
+  emergency:  () => navigator.vibrate?.([300, 150, 300]),
+  legal:      () => navigator.vibrate?.([80, 40, 80, 40, 80]),
+  dispatch:   () => navigator.vibrate?.([100, 50, 100, 50, 200]),
+  crash:      () => navigator.vibrate?.([500, 200, 500, 200, 500]),
+};
+
+// Hook haptics into existing key interactions
+document.addEventListener('DOMContentLoaded', () => {
+  // SOS main button
+  const heroBtn = document.getElementById('hero-try-btn');
+  if (heroBtn) heroBtn.addEventListener('click', () => HAPTIC.sos());
+
+  // Voice SOS button
+  const voiceBtn = document.getElementById('hero-voice-btn');
+  if (voiceBtn) voiceBtn.addEventListener('click', () => HAPTIC.alert());
+
+  // Share location button
+  const shareBtn = document.getElementById('share-location-btn');
+  if (shareBtn) shareBtn.addEventListener('click', () => HAPTIC.tap());
+
+  // Install button
+  const installBtn = document.getElementById('pwa-install-btn');
+  if (installBtn) installBtn.addEventListener('click', () => HAPTIC.success());
+});
+
+// Expose globally so app.js simulator steps can call it
+window.hapticFeedback = HAPTIC;
+
+// Patch simulator step transitions to vibrate
+const _origStepFn = window.nextSimStep;
+if (typeof _origStepFn === 'function') {
+  window.nextSimStep = function(...args) {
+    HAPTIC.tap();
+    return _origStepFn.apply(this, args);
+  };
+}
+
+// Patch showToast to vibrate on emergency toasts
+const _origShowToast = window.showToast;
+if (typeof _origShowToast === 'function') {
+  window.showToast = function(msg, duration) {
+    if (msg && (msg.includes('🚨') || msg.includes('⚠️') || msg.includes('SOS'))) {
+      HAPTIC.alert();
+    }
+    return _origShowToast.call(this, msg, duration);
+  };
+}
+
+console.log('[GoodStop] Haptic feedback ready —', navigator.vibrate ? 'vibration supported' : 'vibration not supported on this device');
+
+
+// ════════════════════════════════════════════════════
+// CRASH DETECTION — DeviceMotionEvent (Accelerometer)
+// Real API: window.DeviceMotionEvent
+// Threshold: >25 m/s² = crash-level G-force
+// ════════════════════════════════════════════════════
+const CRASH_THRESHOLD = 25;   // m/s² — crash level (~2.5g)
+const CRASH_COOLDOWN  = 30000; // 30s between triggers
+let crashCooldownActive = false;
+let crashCountdownTimer  = null;
+let crashCountdownSecs   = 5;
+
+function startCrashDetection() {
+  if (!window.DeviceMotionEvent) {
+    console.log('[GoodStop] DeviceMotion not available');
+    return;
+  }
+
+  // iOS 13+ requires permission
+  if (typeof DeviceMotionEvent.requestPermission === 'function') {
+    DeviceMotionEvent.requestPermission()
+      .then(perm => {
+        if (perm === 'granted') attachMotionListener();
+        else console.log('[GoodStop] Motion permission denied');
+      })
+      .catch(console.error);
+  } else {
+    attachMotionListener();
+  }
+}
+
+function attachMotionListener() {
+  window.addEventListener('devicemotion', handleMotion, { passive: true });
+
+  // Show badge in hero
+  const badge = document.getElementById('crash-detect-badge');
+  if (badge) badge.style.display = 'flex';
+  console.log('[GoodStop] Crash detection: ACTIVE');
+  showToast('📳 Crash detection active — accelerometer monitoring', 2500);
+}
+
+function handleMotion(event) {
+  if (crashCooldownActive) return;
+  const acc = event.accelerationIncludingGravity;
+  if (!acc) return;
+
+  const magnitude = Math.sqrt(
+    (acc.x || 0) ** 2 +
+    (acc.y || 0) ** 2 +
+    (acc.z || 0) ** 2
+  );
+
+  // Subtract gravity (≈9.8 m/s²) to get net acceleration
+  const netG = Math.abs(magnitude - 9.8);
+
+  if (netG > CRASH_THRESHOLD) {
+    triggerCrashAlert();
+  }
+}
+
+function triggerCrashAlert() {
+  crashCooldownActive = true;
+  crashCountdownSecs  = 5;
+  HAPTIC.crash();
+
+  // Build countdown overlay
+  const overlay = document.createElement('div');
+  overlay.id = 'crash-overlay';
+  overlay.style.cssText = `
+    position:fixed;inset:0;z-index:999999;
+    background:rgba(255,71,87,0.92);backdrop-filter:blur(10px);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    font-family:'Space Grotesk',sans-serif;color:#fff;
+    animation:crashFlash 0.3s ease;
+  `;
+  overlay.innerHTML = `
+    <style>@keyframes crashFlash{0%{opacity:0}50%{opacity:1}100%{opacity:1}}</style>
+    <div style="font-size:4rem;margin-bottom:16px;animation:pulse-green 0.8s ease infinite;">💥</div>
+    <div style="font-size:1.8rem;font-weight:900;margin-bottom:8px;">CRASH DETECTED</div>
+    <div style="font-size:0.9rem;opacity:0.85;margin-bottom:28px;">High-impact motion detected by accelerometer</div>
+    <div id="crash-countdown" style="font-size:5rem;font-weight:900;line-height:1;margin-bottom:24px;">5</div>
+    <div style="font-size:0.85rem;opacity:0.8;margin-bottom:28px;">Sending SOS automatically in <span id="crash-secs">5</span> seconds...</div>
+    <div style="display:flex;gap:16px;">
+      <button onclick="cancelCrashSOS()" style="padding:14px 32px;background:rgba(255,255,255,0.2);
+        border:2px solid rgba(255,255,255,0.5);color:#fff;border-radius:50px;font-size:1rem;
+        font-weight:800;cursor:pointer;font-family:inherit;">
+        ✕ I'm Safe — Cancel
+      </button>
+      <button onclick="confirmCrashSOS()" style="padding:14px 32px;background:#fff;
+        border:2px solid #fff;color:#ff4757;border-radius:50px;font-size:1rem;
+        font-weight:800;cursor:pointer;font-family:inherit;">
+        🚨 Send SOS Now
+      </button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  // Countdown timer
+  crashCountdownTimer = setInterval(() => {
+    crashCountdownSecs--;
+    HAPTIC.alert();
+    const cdEl = document.getElementById('crash-countdown');
+    const secsEl = document.getElementById('crash-secs');
+    if (cdEl) cdEl.textContent = crashCountdownSecs;
+    if (secsEl) secsEl.textContent = crashCountdownSecs;
+
+    if (crashCountdownSecs <= 0) {
+      clearInterval(crashCountdownTimer);
+      confirmCrashSOS();
+    }
+  }, 1000);
+}
+
+window.cancelCrashSOS = function() {
+  clearInterval(crashCountdownTimer);
+  const overlay = document.getElementById('crash-overlay');
+  if (overlay) overlay.remove();
+  HAPTIC.success();
+  showToast("✅ SOS cancelled — glad you're safe!", 3000);
+
+  // Resume detection after cooldown
+  setTimeout(() => { crashCooldownActive = false; }, CRASH_COOLDOWN);
+};
+
+window.confirmCrashSOS = function() {
+  clearInterval(crashCountdownTimer);
+  const overlay = document.getElementById('crash-overlay');
+  if (overlay) overlay.remove();
+  HAPTIC.sos();
+
+  // Trigger emergency share with crash context
+  const lat = realGPS?.lat || INCIDENT.lat;
+  const lng = realGPS?.lng || INCIDENT.lng;
+  const mapsUrl = `https://maps.google.com/?q=${lat},${lng}`;
+  const msg = `🚨 CRASH DETECTED — AUTO SOS from GoodStop\n\nA crash-level impact was detected on my phone's accelerometer.\n\n📍 My location: ${mapsUrl}\n\nPlease send help immediately!\n\nSent automatically by GoodStop v2.0`;
+
+  navigator.share?.({ title: '🚨 CRASH SOS', text: msg, url: mapsUrl })
+    .catch(() => {
+      navigator.clipboard?.writeText(msg);
+    });
+
+  showToast('🚨 Crash SOS sent! Emergency contacts notified.', 4000);
+
+  // If bystander simulator is available, open it
+  if (typeof openBystander === 'function') {
+    setTimeout(openBystander, 500);
+  }
+
+  setTimeout(() => { crashCooldownActive = false; }, CRASH_COOLDOWN);
+};
+
+// Auto-start crash detection once GPS is ready
+setTimeout(() => {
+  startCrashDetection();
+}, 2000);
+
+
+// ════════════════════════════════════════════════════
+// SHARE EMERGENCY LOCATION
+// Real API: navigator.share() (Web Share API)
+// Fallback: clipboard copy
+// ════════════════════════════════════════════════════
+window.shareEmergencyLocation = async function() {
+  HAPTIC.dispatch();
+
+  const lat = realGPS?.lat || INCIDENT.lat;
+  const lng = realGPS?.lng || INCIDENT.lng;
+  const accuracy = realGPS ? 'Real GPS' : 'Estimated';
+
+  const mapsUrl   = `https://maps.google.com/?q=${lat},${lng}`;
+  const wazeUrl   = `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
+  const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  const shareText = `🚨 ACCIDENT — HELP NEEDED\n\n📍 Location: ${mapsUrl}\n🗺️ Waze: ${wazeUrl}\n⏰ Time: ${timestamp}\n📡 Source: ${accuracy}\n\nPlease call 108 / 112 immediately.\n\nShared via GoodStop — Road Safety Platform`;
+
+  try {
+    if (navigator.share) {
+      await navigator.share({
+        title: '🚨 Accident — Help Needed',
+        text: shareText,
+        url: mapsUrl,
+      });
+      HAPTIC.success();
+      showToast('📤 Location shared successfully!', 2500);
+    } else {
+      // Fallback: copy to clipboard
+      await navigator.clipboard.writeText(shareText);
+      HAPTIC.success();
+      showToast('📋 Location copied to clipboard — paste in WhatsApp!', 3000);
+    }
+  } catch (err) {
+    if (err.name !== 'AbortError') {
+      // User cancelled — don't show error, just silent
+      try {
+        await navigator.clipboard.writeText(mapsUrl);
+        showToast('📋 Maps link copied!', 2500);
+      } catch {}
+    }
+  }
+};
