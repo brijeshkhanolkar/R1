@@ -1,12 +1,14 @@
-const CACHE_NAME = 'goodstop-v3';
+const CACHE_NAME = 'goodstop-v4';
 const CORE_ASSETS = [
   './',
   './index.html',
+  './offline.html',
   './style.css',
   './app.js',
   './features.js',
   './manifest.json',
   './icon-192.svg',
+  './og-preview.png',
 ];
 
 // CDN assets — fetched with no-cors (opaque responses), so cached separately
@@ -93,9 +95,9 @@ self.addEventListener('fetch', event => {
             console.log(`[GoodStop SW] Offline → cache: ${url}`);
             return cached;
           }
-          // For navigation requests, return the main page
+          // For navigation requests, serve the branded offline page
           if (event.request.mode === 'navigate') {
-            return caches.match('./index.html');
+            return caches.match('./offline.html') || caches.match('./index.html');
           }
           return new Response('', { status: 503, statusText: 'Offline' });
         });
